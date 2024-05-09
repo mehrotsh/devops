@@ -1,0 +1,10 @@
+# Get the access token using Azure Instance Metadata Service
+$IMDSUrl = 'http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=https://management.azure.com/'
+$IMDSEndpointHeaders = @{
+    Metadata = "true"
+}
+$AccessTokenResponse = Invoke-RestMethod -Method GET -Uri $IMDSUrl -Headers $IMDSEndpointHeaders
+
+# Extract the access token from the response
+$AccessToken = $AccessTokenResponse.access_token
+$AccessToken
