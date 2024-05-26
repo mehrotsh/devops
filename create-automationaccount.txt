@@ -3,3 +3,26 @@ az automation account create \
   --resource-group <YourResourceGroupName> \
   --location <AzureRegion> \
   --assign-identity
+
+
+$tenantId = 'your-tenant-id'  # Replace with your Azure tenant ID
+$clientId = 'your-client-id'  # Replace with your service principal's client ID
+$clientSecret = 'your-client-secret'  # Replace with your service principal's client secret
+
+# Convert the client secret to a secure string
+$secureClientSecret = ConvertTo-SecureString $clientSecret -AsPlainText -Force
+
+# Connect to Azure with the service principal
+Connect-AzAccount -ServicePrincipal -Tenant $tenantId -ApplicationId $clientId -Credential (New-Object System.Management.Automation.PSCredential ($clientId, $secureClientSecret))
+
+
+# Get Azure context to verify
+Get-AzContext
+
+# List some resources, for example, Azure VMs
+Get-AzVM
+
+
+# Set the Azure subscription
+$subscriptionId = 'your-subscription-id'  # Replace with your actual subscription ID
+Set-AzContext -SubscriptionId $subscriptionId
