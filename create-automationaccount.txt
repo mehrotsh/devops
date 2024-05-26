@@ -55,3 +55,8 @@ Set-AzContext -SubscriptionId $subscriptionId
         }
     }
 }
+
+az deployment group create \
+  --resource-group <YourResourceGroupName> \
+  --template-file <PathToYourTemplateFile.json>
+
