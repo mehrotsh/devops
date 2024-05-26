@@ -26,3 +26,32 @@ Get-AzVM
 # Set the Azure subscription
 $subscriptionId = 'your-subscription-id'  # Replace with your actual subscription ID
 Set-AzContext -SubscriptionId $subscriptionId
+
+
+
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "resources": [
+        {
+            "type": "Microsoft.Automation/automationAccounts",
+            "apiVersion": "2020-01-13-preview",
+            "name": "[parameters('automationAccountName')]",
+            "location": "[parameters('location')]",
+            "properties": {},
+            "identity": {
+                "type": "SystemAssigned"
+            }
+        }
+    ],
+    "parameters": {
+        "automationAccountName": {
+            "type": "string",
+            "defaultValue": "MyAutomationAccount"
+        },
+        "location": {
+            "type": "string",
+            "defaultValue": "East US"
+        }
+    }
+}
