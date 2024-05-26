@@ -1,0 +1,5 @@
+az automation account create \
+  --name <YourAutomationAccountName> \
+  --resource-group <YourResourceGroupName> \
+  --location <AzureRegion> \
+  --assign-identity
