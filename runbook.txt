@@ -1,0 +1,36 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "automationAccountName": {
+      "type": "string"
+    },
+    "runbookName": {
+      "type": "string"
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Automation/automationAccounts/runbooks",
+      "apiVersion": "2018-06-30",
+      "name": "[concat(parameters('automationAccountName'), '/', parameters('runbookName'))]",
+      "location": "eastus",
+      "properties": {
+        "logVerbose": false,
+        "logProgress": false,
+        "runbookType": "Script",
+        "publishContentLink": {
+          "uri": "<URL_to_your_PowerShell_script>",
+          "version": "1.0.0.0"
+        },
+        "runtime": "PowerShell7.2"  // This property might need adjustment based on real API support
+      }
+    }
+  ]
+}
+
+az deployment group create \
+  --resource-group <ResourceGroup> \
+  --template-file runbook-template.json \
+  --parameters automationAccountName=<AutomationAccount> runbookName=<RunbookName>
+
