@@ -1,0 +1,124 @@
+"Good morning, everyone! 
+Im Shivam, Im a devops engineer in IB Neo team.I along with Amit will be taking this session for your today.
+
+Today, we're going to dive into the fundamental concept of DevOps. 
+We have kept this session very simple and basic to ensure everyone can follow along. Feel free to reach out to me anytime if you have questions.
+
+
+
+First we'll start with a question in teams chat to check your understanding of what devops is ?
+you have 2 mins, Please share your response in the chat !
+
+
+
+
+Slide 2:
+
+In this slide, we'll discuss the consequences of inefficiency in software development and operations. Understanding these challenges highlights the importance of adopting DevOps practices.
+
+
+
+
+Inefficiencies in development, operations, and business processes can lead to 
+>significant delays in delivery
+>increased costs, and
+> reduced performance. 
+
+Adopting DevOps practices helps overcome these challenges by fostering better collaboration, streamlining processes, and improving the overall quality and speed of software delivery.
+
+Understanding these inefficiencies is crucial as we move forward with implementing DevOps strategies to improve our workflows and achieve better outcomes.
+
+
+
+Slide 3:
+
+
+"The elephant in the middle with different people around it illustrates that DevOps can mean different things to different people. Everyone might see a part of it, but together, we understand the whole picture. The messages 'It's DevOps!' emphasize that all these elements —  collaboration, automation, small deployments, infrastructure as code, and feature switches — are integral parts of the DevOps philosophy."
+
+
+Slide 4:
+
+
+ let's understand what DevOps is. DevOps is a combination of two critical components in software engineering: 'development' (Dev) and 'operations' (Ops). It is a methodology designed to improve collaboration and communication between software developers and IT operations teams.
+
+The goal of DevOps is to integrate and automate the processes of software development and IT operations to deliver high-quality software more quickly and reliably. I
+
+Now, let's walk through the DevOps lifecycle, which is depicted in the diagram on the slide.
+
+Plan: This is where it all begins. Teams come together to identify business requirements and plan the development process. We define the scope, set timelines, allocate resources, and outline our objectives.
+
+Develop: In this phase, developers are busy writing and compiling code. They work on building new features, fixing bugs, and enhancing existing functionalities.
+
+Test: Once the code is developed, it goes through rigorous testing to identify and fix any defects. Automated testing tools are often used to ensure that the code meets the required standards and functions correctly.
+
+Continuous Integration: This is a crucial phase where code changes are frequently merged into a shared repository. Automated builds and tests run to detect issues early and ensure that new code integrates smoothly with the existing codebase.
+
+Monitor: Monitoring is about keeping an eye on application performance and infrastructure health. We use tools to collect and analyze data to ensure that the system runs smoothly and to identify potential issues before they impact users.
+
+Release: In the release phase, we deploy the application to a production environment. This requires careful coordination to ensure minimal disruption to users.
+
+Ops (Operations): Operations teams focus on maintaining and managing the application in a live environment, ensuring its stability, security, and performance.
+
+Feedback Loop: Finally, feedback from the monitoring phase is used to plan for the next development cycle, creating a continuous improvement loop.
+
+By following these stages, DevOps helps us deliver better software more efficiently and ensures that we can quickly respond to changes and issues as they arise.
+
+Thank you for your attention, and let's dive deeper into each of these stages in our upcoming sessions."
+
+
+
+Slide 5
+
+What is DevOps?
+
+DevOps is all about dismantling silos between development (Dev), operations (Ops), and business. 
+
+Traditionally, these teams have worked in isolation, which can create inefficiencies and slow down the delivery of software. DevOps aims to integrate these functions to improve collaboration and productivity.
+
+Slide Breakdown:
+
+Dev + Ops + Business = Value:
+
+Dev (Development): This represents the team of developers who write and build the software.
+Ops (Operations): This team is responsible for deploying and maintaining the software in production.
+Business: This involves the stakeholders and customers who require the software to meet specific needs.
+
+By combining these three aspects, we focus on delivering value.
+
+
+Key Principles of DevOps:
+
+Value: Deliver value early and often. This means frequently releasing updates and features that benefit the end-users.
+Flow: Optimize the flow of work end-to-end. This involves streamlining processes to ensure that work moves smoothly from development to production.
+Quality: Discover quality with fast feedback. Quickly identifying and addressing issues to maintain high standards.
+
+
+Benefits:
+
+Increased Value: By delivering value early and often, we ensure that the software meets user needs promptly.
+Improved Flow: Optimizing the workflow helps in reducing bottlenecks and inefficiencies, leading to faster delivery times.
+Enhanced Quality: Fast feedback loops enable us to catch and fix issues early, resulting in a more reliable product.
+
+
+slide 6
+
+ Now that we have a basic understanding of what DevOps is, let's move on to the three-stage conversation that forms the foundation of DevOps practices. This will help you understand how DevOps operates in a structured manner.
+
+Three-Stage Conversation:
+
+People:
+
+The first stage focuses on the people involved. In DevOps, it's crucial to have the right team members with the right skills and mindset.
+Dev : These are the developers who write and create the software. They need to collaborate closely with the operations team.
+Ops : These individuals are responsible for deploying and maintaining the software. They ensure that the software runs smoothly in the production environment.
+Importance: By breaking down the silos between Dev and Ops, we foster better communication and collaboration, which leads to more efficient and effective software development and deployment.
+Process:
+
+The second stage is about the process. This involves the methods and practices used to integrate development and operations.
+Key Aspects: Implementing practices like Continuous Integration (CI) and Continuous Delivery (CD) to automate the process of software development and deployment.
+Goal: To create a seamless and continuous workflow that allows for frequent and reliable software releases. This helps in reducing errors and ensures that feedback is quickly incorporated into the product.
+Products:
+
+The third stage focuses on the products. This is the actual software and tools used to facilitate DevOps practices.
+Tools: Using various tools for source control, configuration management, monitoring, and more. Examples include Git, Jenkins, Docker, Kubernetes, and others.
+Objective: To ensure that the software developed is of high quality, meets user requirements, and is delivered efficiently. The right tools help in automating processes, monitoring performance, and maintaining consistency across environments.
