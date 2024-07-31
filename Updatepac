@@ -1,0 +1,20 @@
+#!/bin/bash
+
+# Define the label key and value
+LABEL_KEY="new-label"
+LABEL_VALUE="new-value"
+
+# Get all Prometheusalertsconfig objects in all namespaces
+resources=$(kubectl get Prometheusalertsconfig --all-namespaces -o json)
+
+# Loop through each resource
+echo "$resources" | jq -c '.items[]' | while read -r resource; do
+  # Get the namespace and name of the resource
+  namespace=$(echo "$resource" | jq -r '.metadata.namespace')
+  name=$(echo "$resource" | jq -r '.metadata.name')
+  
+  # Add the new label to the resource
+  kubectl label Prometheusalertsconfig "$name" -n "$namespace" "$LABEL_KEY=$LABEL_VALUE" --overwrite
+done
+
+echo "Labels added to all Prometheusalertsconfig objects successfully."
