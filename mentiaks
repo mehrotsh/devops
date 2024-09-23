@@ -1,0 +1,71 @@
+
+1. **What is Kubernetes primarily used for?**
+   - A) Web development
+   - B) Container orchestration
+   - C) Database management
+   - D) Network security
+   - **Correct Answer: B**
+
+2. **Which component of Kubernetes is responsible for maintaining the desired state of the cluster?**
+   - A) Kubelet
+   - B) Controller Manager
+   - C) Scheduler
+   - D) API Server
+   - **Correct Answer: B**
+
+3. **What is a Pod in Kubernetes?**
+   - A) A single container
+   - B) A group of containers
+   - C) A virtual machine
+   - D) A network switch
+   - **Correct Answer: B**
+
+4. **Which file format is commonly used for Kubernetes configuration files?**
+   - A) JSON
+   - B) XML
+   - C) YAML
+   - D) CSV
+   - **Correct Answer: C**
+
+5. **What is the purpose of a Deployment in Kubernetes?**
+   - A) To manage the lifecycle of Pods
+   - B) To store data persistently
+   - C) To provide network connectivity
+   - D) To monitor system performance
+   - **Correct Answer: A**
+
+6. **Which Kubernetes object ensures that a specified number of pod replicas are running at any given time?**
+   - A) Service
+   - B) ReplicaSet
+   - C) ConfigMap
+   - D) Secret
+   - **Correct Answer: B**
+
+7. **What is the role of a Service in Kubernetes?**
+   - A) To manage storage volumes
+   - B) To expose an application running on a set of Pods
+   - C) To schedule Pods on nodes
+   - D) To handle logging and monitoring
+   - **Correct Answer: B**
+
+8. **Which command is used to create a new Pod in Kubernetes?**
+   - A) kubectl create pod
+   - B) kubectl run
+   - C) kubectl deploy
+   - D) kubectl start pod
+   - **Correct Answer: B**
+
+9. **What does YAML stand for?**
+   - A) Yet Another Markup Language
+   - B) YAML Ain't Markup Language
+   - C) Your Application Markup Language
+   - D) Yes, A Markup Language
+   - **Correct Answer: B**
+
+10. **Which Kubernetes component is responsible for scheduling Pods on nodes?**
+    - A) Kubelet
+    - B) Controller Manager
+    - C) Scheduler
+    - D) API Server
+    - **Correct Answer: C**
+
