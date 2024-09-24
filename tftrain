@@ -1,0 +1,118 @@
+Slide 10:
+
+Terraform architecture:
+
+Sure! Let's break down how Terraform works using the architecture diagram you can see in the here:
+
+what you see in the left most corner is the user which is feeding terrafomr configuration files to the terrafomr core.
+
+1. what ae these Terraform Configuration Files (.tf/.tf.json)**:
+   - you can Think of these as the blueprints for your infrastructure.
+You write code in these files to specify what resources you need, like virtual machines, databases, storage or networks.
+
+2. next is the Terraform Core**:
+   - consider This as  the brain or engine of Terraform. It reads your configuration files and creates an execution plan.
+This plan outlines the steps Terraform will take to create or modify your infrastructure.
+
+Terraform core uses two input sources to do its job.
+
+The first input source is a Terraform configuration. Here, you define what needs to be created or provisioned. 
+
+And the second input source is a state where terraform keeps the up-to-date state of how the current infrastructure looks like.
+
+
+
+3. **Providers**:
+   - Providers are like translators. They communicate with different cloud services (like AWS, Azure, Google Cloud) using their APIs.
+Each provider knows how to manage specific types of resources.
+Terraform has over a hundred providers for different technologies, and each provider then gives terraform user access to its resources. So through AWS provider, for example, you have access to hundreds of AWS resources like EC2 instances, the AWS users, etc. 
+With Kubernetes provider, you access to commodities, resources like services and deployments and namespaces, etc.
+
+
+4. **Terraform State (.tfstate)**:
+   - This is a file that keeps track of the current state of your infrastructure. 
+It helps Terraform understand what has already been created and what still needs to be done.
+
+let dive a bit deeper here:
+So, what terraform core does is it takes the input, and it figures out the plan of what needs to be done.
+It compares the state, what is the current state, and configuration that you desire in the end result.
+It figures out what needs to be done to get to that desired state thats in the configuration file.
+It figures what needs to be created, what needs to be updated, what needs to be deleted to create and provision the infrastructure.
+
+
+### How It All Comes Together:
+1. **Write Configuration**: You start by writing your infrastructure requirements in the configuration files.
+2. **Initialize**: Terraform initializes and downloads the necessary providers.
+3. **Plan**: Terraform Core generates an execution plan based on your configuration.
+4. **Apply**: Terraform applies the plan, using providers to interact with cloud services and create or modify resources.
+5. **State Management**: Terraform updates the state file to reflect the current state of your infrastructure.
+
+This process allows you to manage your infrastructure as code, making it easier to automate, version control, and collaborate on infrastructure changes.
+
+
+
+
+
+
+
+SLIDE 11 Terraform Basics:
+
+Lets now go through the basic components of Terraform:
+
+### Basic Components of Terraform
+
+1. **Providers**:
+   - As we have also discussed in architecture slide, Providers are extensions that allow Terraform to interact with various 
+infrastructure platforms like AWS, Azure, Google Cloud, etc.
+   - **Example**: Imagine you want to create a virtual machine (VM) on AWS.
+The AWS provider is like a translator that understands how to communicate with AWS to create that VM.
+   So, Providers are like translators that help Terraform talk to different cloud services.
+For example, if you want to create a VM on AWS, the AWS provider knows how to do that."
+
+2. **Resources**:
+   - Resources represent the services offered by cloud providers, such as virtual machines, networks, and databases.
+   -  They are the most important element in the Terraform configuration, as they are the actual infrastructure objects.
+   - "Resources are the actual services you want to create or manage. For instance, if you need an S3 bucket on AWS, you define it as a resource in your Terraform configuration."
+
+3. **Modules**:
+   - **Role**: Modules are containers for multiple resources that are used together.
+   -They help organize and reuse code by grouping related resources into a single unit.
+   - "Modules are like reusable packages of code. If you have a module for setting up a web server, it includes everything needed,
+like the VM, security settings, and load balancer." it willo have the resource for each of these components
+
+4. **Provisioner**:
+   -  Provisioners are used to execute scripts on a local or remote machine as part of resource creation or destruction.
+   -  They model specific actions that need to be performed on the infrastructure, such as installing software or configuring services.
+   - "Provisioners are used to run scripts on your resources. For example, after creating a VM, you might use a provisioner to install Apache web server on it."
+
+5. **Workspaces**:
+   -  Workspaces allow you to manage multiple environments (like development, staging, production) within the same configuration.
+   -  They separate different parts of a resource stack, making it easier to manage different stages of deployment.
+   - "Workspaces help you manage different environments. 
+      You can have separate configurations for development, staging, and production, all within the same project."
+
+6. **Data Sources**:
+   -  Data sources allow you to fetch information from existing infrastructure.
+   -  They perform reads on existing resources and return data that can be used in your configuration.
+   -  "Data sources allow you to read information from your existing infrastructure.
+For instance, you can use a data source to get the latest Amazon Machine Image (AMI) ID for your EC2 instances."
+
+7. **State File**:
+   -  The state file is used by Terraform to map real-world resources to your configuration.
+   -  It keeps track of metadata and improves performance for large infrastructures by maintaining the current state of your managed resources.
+   - The state file keeps track of the current status of your S3 bucket, so Terraform knows if it needs to make any changes.
+   - "consider  state file as  a record book that keeps track of your infrastructure. It helps Terraform know what has been created and what still needs to be done."
+
+These components work together to help you define, provision, and manage your infrastructure efficiently. 
+
+Hope this explanation help clarify things? Feel free to ask if you have more questions!
+
+
+Slide 12 Providers: 
+
+A provider is responsible for understanding API interactions and exposing resources. 
+It interacts with the various APIs required to create, update, and delete various resources. Terraform configurations must declare which providers they require so that Terraform can install and use them.
+
+
+Link to provider registery https://registry.terraform.io/browse/providers
+
