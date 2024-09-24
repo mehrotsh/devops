@@ -113,6 +113,206 @@ Slide 12 Providers:
 A provider is responsible for understanding API interactions and exposing resources. 
 It interacts with the various APIs required to create, update, and delete various resources. Terraform configurations must declare which providers they require so that Terraform can install and use them.
 
+Provider Block (code block image in slide): This block specifies which provider Terraform should use. In this case, it’s the Azure Resource Manager (azurerm) provider.
+client_id: This is the Application (client) ID of your Service Principal.
+client_secret: This is the password or secret associated with your Service Principal.
+tenant_id: This is the Directory (tenant) ID where your Service Principal is registered.
+subscription_id: This is the ID of the Azure subscription you want to manage.
 
 Link to provider registery https://registry.terraform.io/browse/providers
+
+Slide 13: resources
+
+ Resources are the most important element in Terraform. They represent the infrastructure objects or services you want to manage.
+its the resource where you Define the desired state of your infrastructure, such as virtual machines, databases, networks, etc.
+
+
+Resource Blocks: Each resource block specifies a type of resource and its configuration.
+
+Slide 14 Data Sources:
+Data sources allow you to fetch information from existing infrastructure that is not managed by your current Terraform configuration.
+Purpose: Use data sources to read and reference existing resources, enabling you to integrate them into your Terraform-managed infrastructure.
+
+
+Data sources do not create or modify resources; they only read information.
+Its  Useful for integrating existing infrastructure with new Terraform-managed resources.
+
+
+Slide 15 Variables:
+Variables in Terraform allow you to parameterize your configurations, making them more flexible and reusable.
+ They enable you to define values that can be reused across your configuration files, 
+reducing hardcoding and making your infrastructure code more maintainable.
+
+Slide 16: Output
+
+Outputs in Terraform allow you to extract and display information about your infrastructure after it has been applied.
+They enable you to share data between modules, display useful information, and pass values to external systems.
+Its Useful for debugging, sharing data between configurations, and integrating with other tools.
+
+Slide 17: Terraform Language Baics
+
+Terraform uses a domain-specific language called HashiCorp Configuration Language, or HCL.
+This language is designed to be both human-readable and machine-friendly, making it easier to write and understand infrastructure code.
+Let’s break down the key components of Terraform’s configuration syntax:
+
+Blocks:
+ Blocks are the fundamental building units in Terraform. They are containers for other configurations and are structured as a block type followed by zero or more labels.
+
+Arguments:
+They are defined within the  blocks. They appear as key-value pairs and define the properties of the resource.
+
+Identifiers:
+ Identifiers are names given to resources, variables, outputs, etc., allowing you to reference them throughout your configuration.
+
+Comments:
+Comments are used to add notes or explanations within your Terraform configurations. They do not affect the execution of the code.
+
+Slide 19: Configuration Syntax:
+lets dig a bit deeper in the configuration syntax :
+
+The block type indicates what kind of resource or configuration you’re defining. 
+In this example, the block type is resource.
+
+Block  Labels provide additional context for the block.
+The first label specifies the type of resource (aws_instance), and the second label is a user-defined name (webserver).
+
+Arguments are key-value pairs inside the block that define the properties of the resource.
+
+The complete block defines an AWS EC2 instance with a specific Amazon Machine Image (AMI) and instance type.
+
+Understanding these components will help you write clear and effective Terraform configurations. Any questions so far?"
+
+
+Slide 20 Blocks:
+
+we’re going to explore the top-level blocks in Terraform, which are essential for organizing and managing your infrastructure as code. This diagram provides a visual representation of these blocks and how they fit together.
+
+Blue Blocks: Represent the fundamental Terraform block and its sub-blocks (Providers and Resources).
+Green Blocks: Represent variable handling blocks (Input Variables, Output Values, Local Values).
+Purple Blocks: Represent calling/referencing blocks (Data Sources, Modules).
+
+In the left  you can see the fundamental blocks:
+
+- First one is the Terraform Block:
+ This is the fundamental block where you define the settings and configurations for Terraform itself. example setting up.
+terraform block is used to specify settings for the Terraform execution environment,
+such as the required Terraform version and backend configuration settings.
+
+
+- next is Providers Block: This is used to Specifie the providers (e.g., AWS, Azure) that Terraform will use to manage resources.
+- Resources Block  Defines the actual infrastructure components, such as virtual machines, networks, and databases.
+
+In the green are the Variable blocks:
+
+- Input Variables Blocks allow you to parameterize your configurations, making them more flexible and reusable.
+- Output values allow you to extract and display information about your infrastructure after it has been applied.
+- Local values are temporary variables that you can use within a module to simplify complex expressions.
+
+In purple are referecing blocks:
+- Data sources allow you to fetch information from existing infrastructure that is not managed by your current Terraform configuration.
+- Modules are containers for multiple resources that are used together. They help organize and reuse code by grouping related resources into a single unit.
+
+
+
+SLide 21: terrform Repo
+
+This slide shows how different Terraform configuration files are organized and what each file is responsible for.
+
+1. backend.tf
+Purpose: Specifies the backend configuration for storing the Terraform state.
+
+2. provider.tf
+Defines the providers that Terraform will use to manage resources.
+
+3. versions.tf
+Purpose: Specifies the required providers and their versions.this is to ensure that the correct provider and version are used.
+
+4. main.tf
+Purpose: Contains the main configuration for defining resources.
+
+5. outputs.tf
+Purpose: Defines output values that Terraform will return after applying the configuration.
+
+Understanding these files and their purposes will help you manage your Terraform configurations effectively. Any questions so far?"
+
+
+Slide 22: terraform stages:
+
+In this slide we’ll  go through the essential steps in the Terraform workflow. 
+These steps help you manage your infrastructure as code efficiently. Let’s look at each step in detail:
+
+1. init
+This command Initializes a new or existing Terraform configuration.
+This step sets up the backend configuration, downloads the necessary provider plugins, and prepares the working directory for other Terraform commands.
+Running terraform init ensures that your environment is ready to manage infrastructure. It downloads the required providers and sets up the backend for state management.
+
+2. validate
+This  Validates the configuration files in a directory.
+ This step checks the syntax and consistency of the configuration files to ensure they are correct and complete.
+Running terraform validate helps catch syntax errors and other issues before applying the configuration, ensuring that your code is error-free.
+
+3. plan
+It Creates an execution plan.
+ This step shows what actions Terraform will take to achieve the desired state defined in the configuration files. 
+It does not make any changes but provides a detailed plan.
+Running terraform plan allows you to see what changes will be made to your infrastructure.
+It helps you understand the impact of your changes before applying them.
+
+4. apply
+This stage Applies the changes required to reach the desired state of the configuration.
+This step executes the actions proposed in the plan to create, update, or delete infrastructure resources.
+Running terraform apply makes the actual changes to your infrastructure as defined in your configuration files. It creates, updates, or deletes resources to match the desired state.
+
+
+5. destroy
+ Destroys the managed infrastructure.
+This step removes all the resources defined in the configuration files, effectively tearing down the infrastructure.
+Running terraform destroy is used when you want to completely remove the infrastructure managed by Terraform. It ensures that all resources are deleted.
+
+Slide 24: terraform state
+
+Now we’re going to explore the concept of Terraform State and how Terraform interacts with AWS to manage infrastructure. This slide provides a visual representation of the process.
+
+The Terraform state file (terraform.tfstate) is a critical component that keeps track of the current state of your infrastructure.
+It maps real-world resources to your configuration, ensuring Terraform knows what has been created and what still needs to be done.
+
+1.In the top of this diagram you can see Terraform admin/Local desktop 
+   -  So, The process starts with the admin (you) working on a local desktop.
+   -  You use the Terraform CLI to run various commands.
+
+   - in the step 1, when you execute a `terraform init`**:
+     - it will Initialize the Terraform configuration , i.e., this will Download necessary provider plugins from the Terraform Registry.
+
+The Step 2 is `terraform validate`which  Validates the configuration files and  Ensures the syntax and configuration are correct.
+
+The Step 3 is `terraform plan` and it Creates an execution plan, that  Shows what changes will be made to the infrastructure.
+During terraform plan Terraform reads the current state from the state file to understand the existing infrastructure and 
+compares it with the desired state defined in your configuration files.Based on the differences,
+it  generates an execution plan that outlines the actions required to achieve the desired state.
+The execution plan is presented to you, allowing you to review the proposed changes before applying them.
+This step helps you understand the impact of your changes and ensures there are no surprises.
+
+
+The *Step 4 is `terraform apply`, this Applies the changes to reach the desired state and  Executes the plan to create, update, or delete resources.
+During terraform apply Before applying the changes, Terraform re-reads the state file to ensure it has the latest information.
+ Terraform then executes the actions proposed in the execution plan amd  creates, updates, or deletes resources as specified to match the desired state.
+Finally, After making the changes, Terraform updates the state file to reflect the new state of the infrastructure.
+
+
+3. **Terraform State File (`terraform.tfstate`)**:
+   - **Explanation**: The state file keeps track of the current state of your infrastructure.
+   - It maps real-world resources to your configuration, ensuring Terraform knows what has been created and what still needs to be done.
+
+
+   - **Step 5: `terraform destroy`**:
+     - **Purpose**: Destroys the managed infrastructure.
+     - **Action**: Removes all resources defined in the configuration.
+     - **Example**:
+       ```sh
+       terraform destroy
+       ```
+Slide Demo 25/26:
+az login
+
+Understanding these components and steps will help you manage your infrastructure effectively using Terraform. Any questions so far?"
 
