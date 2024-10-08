@@ -1,0 +1,41 @@
+canary:
+  enabled: true
+
+  # Service configuration with multiple ports
+  service:
+    annotations:
+      "prometheus.io/scrape": "true"
+      "prometheus.io/path": "/metrics"
+      "prometheus.io/port": "24663"
+    ports:
+      - name: http-management
+        port: 24661
+        targetPort: 24661
+        protocol: TCP
+      - name: http-service
+        port: 24663
+        targetPort: 24663
+        protocol: TCP
+      - name: http-status
+        port: 24664
+        targetPort: 24664
+        protocol: TCP
+
+  # Canary analysis and traffic routing configuration
+  analysis:
+    interval: 1m               # How often Flagger checks metrics during canary rollout
+    threshold: 5                # Number of analysis checks before rollback
+    maxWeight: 50               # Maximum percentage of traffic sent to canary
+    stepWeight: 10              # Step percentage increase for traffic to canary
+    metrics:
+      - name: "request-success-rate"
+        threshold: 99           # Rollback if request success rate is below this
+        interval: 1m
+      - name: "request-duration"
+        threshold: 500          # Rollback if request duration exceeds this (in ms)
+        interval: 30s
+
+  # Webhook for load testing with `hey` command
+  loadtest:
+    url: "http://flagger-loadtester.test/load-test"  # Load test service URL
+    cmd: "hey -z 1m -q 10 http://{{ .Release.Name }}-canary.{{ .Release.Namespace }}:24663/your-endpoint"
