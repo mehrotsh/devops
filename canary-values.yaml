@@ -20,6 +20,9 @@ canary:
         port: 24664
         targetPort: 24664
         protocol: TCP
+    trafficPolicy:  # Mutual TLS and traffic control
+      tls:
+        mode: ISTIO_MUTUAL  # Enable mutual TLS for the service
 
   # Canary analysis and traffic routing configuration
   analysis:
@@ -34,6 +37,61 @@ canary:
       - name: "request-duration"
         threshold: 500          # Rollback if request duration exceeds this (in ms)
         interval: 30s
+
+  # Istio Gateway and TrafficRouting configuration
+  trafficRouting:
+    istio:
+      gateways:
+        - istio-system/my-gateway   # Define the Istio gateway used for ingress
+      hosts:
+        - "*.example.com"           # Hosts for routing
+      http:
+        - match:
+            - uri:
+                prefix: "/management"  # Route traffic with the prefix /management
+          rewrite:
+            uri: "/new-management"     # Optional URI rewrite
+          route:
+            - destination:
+                host: {{ .Release.Name }}-primary  # Primary service
+                port:
+                  number: 24661
+              weight: 90   # 90% of traffic to primary
+            - destination:
+                host: {{ .Release.Name }}-canary   # Canary service
+                port:
+                  number: 24661
+              weight: 10   # 10% of traffic to canary
+        - match:
+            - uri:
+                prefix: "/service"      # Route traffic with the prefix /service
+          rewrite:
+            uri: "/new-service"         # Optional URI rewrite
+          route:
+            - destination:
+                host: {{ .Release.Name }}-primary
+                port:
+                  number: 24663
+              weight: 90
+            - destination:
+                host: {{ .Release.Name }}-canary
+                port:
+                  number: 24663
+              weight: 10
+        - match:
+            - uri:
+                prefix: "/status"       # Route traffic with the prefix /status
+          route:
+            - destination:
+                host: {{ .Release.Name }}-primary
+                port:
+                  number: 24664
+              weight: 90
+            - destination:
+                host: {{ .Release.Name }}-canary
+                port:
+                  number: 24664
+              weight: 10
 
   # Webhook for load testing with `hey` command
   loadtest:
