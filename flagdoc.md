@@ -95,7 +95,9 @@ To implement Canary deployments using Flagger and Istio, the following setup is 
 ### Configuration Example
 Below is an example of a Canary resource using Flagger and Istio:
 
-Here’s the YAML with comments explaining each configuration:
+Here’s how you can add a **webhook load test** configuration to your Canary YAML. The webhook will allow you to run a load test during the analysis phase of the Canary deployment. Flagger can call this webhook to perform custom checks (e.g., stress testing or benchmarking) before shifting more traffic to the Canary version.
+
+Here’s the updated YAML with the **webhook load test** section:
 
 ```yaml
 apiVersion: flagger.app/v1beta1  # API version of the Flagger Canary resource
@@ -129,7 +131,17 @@ spec:
         thresholdRange:
           max: 500  # Maximum acceptable request duration in milliseconds
         interval: 30s  # Time window for evaluating request duration
+    webhooks:  # Define webhooks for custom analysis or testing
+      - name: load-test  # Name of the webhook
+        type: pre-rollout  # Type of webhook, executed before each step of traffic shifting
+        url: http://loadtester.default.svc.cluster.local:8080/run  # URL to trigger the load test
+        timeout: 30s  # Maximum time to wait for the webhook response
+        metadata:
+          type: "fortio"  # Specify load test type (can be customized based on your load testing tool)
+          url: "http://podinfo-canary.default.svc.cluster.local"  # Target URL for the load test (Canary service)
+          duration: "30s"  # Duration of the load test run
 ```
+
 
 Each configuration line now has an inline comment explaining its purpose in the Canary deployment process.
 This configuration directs Flagger to analyze the request success rate and response duration of the canary (`v2`), gradually increasing traffic from 5% to 50%, in increments of 5%.
