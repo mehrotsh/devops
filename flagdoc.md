@@ -95,40 +95,43 @@ To implement Canary deployments using Flagger and Istio, the following setup is 
 ### Configuration Example
 Below is an example of a Canary resource using Flagger and Istio:
 
+Here’s the YAML with comments explaining each configuration:
+
 ```yaml
-apiVersion: flagger.app/v1beta1
-kind: Canary
+apiVersion: flagger.app/v1beta1  # API version of the Flagger Canary resource
+kind: Canary  # Resource type is Canary, defining a canary release
 metadata:
-  name: podinfo
-  namespace: default
+  name: podinfo  # Name of the Canary resource
+  namespace: default  # Namespace where the Canary is deployed
 spec:
   targetRef:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: podinfo
+    apiVersion: apps/v1  # API version for the target deployment
+    kind: Deployment  # Target resource type, in this case, a Deployment
+    name: podinfo  # Name of the target deployment to be canaried
   service:
-    port: 9898
-    targetPort: 9898
+    port: 9898  # Port number of the primary service
+    targetPort: 9898  # Port of the target container to route traffic to
     primary:
-      host: podinfo-primary.default.svc.cluster.local
+      host: podinfo-primary.default.svc.cluster.local  # DNS name of the primary service (stable version)
     canary:
-      host: podinfo-canary.default.svc.cluster.local
+      host: podinfo-canary.default.svc.cluster.local  # DNS name of the canary service (new version)
   analysis:
-    interval: 1m
-    threshold: 5
-    maxWeight: 50
-    stepWeight: 5
+    interval: 1m  # Time interval between analysis steps (1 minute)
+    threshold: 5  # Number of failed checks before triggering a rollback
+    maxWeight: 50  # Maximum traffic percentage that can be shifted to the canary version
+    stepWeight: 5  # Percentage of traffic shifted to the canary during each step
     metrics:
-      - name: request-success-rate
+      - name: request-success-rate  # Metric to monitor: request success rate
         thresholdRange:
-          min: 99
-        interval: 1m
-      - name: request-duration
+          min: 99  # Minimum acceptable success rate percentage for the canary
+        interval: 1m  # Time window for evaluating the success rate
+      - name: request-duration  # Metric to monitor: request duration (latency)
         thresholdRange:
-          max: 500
-        interval: 30s
+          max: 500  # Maximum acceptable request duration in milliseconds
+        interval: 30s  # Time window for evaluating request duration
 ```
 
+Each configuration line now has an inline comment explaining its purpose in the Canary deployment process.
 This configuration directs Flagger to analyze the request success rate and response duration of the canary (`v2`), gradually increasing traffic from 5% to 50%, in increments of 5%.
 
 ---
