@@ -12,3 +12,12 @@ AzureActivity
     Authorization,
     CallerIpAddress
 | order by TimeGenerated desc
+
+
+
+AzureActivity
+| where ResourceProvider == "Microsoft.Compute"
+| where OperationName contains "virtualMachines/write"
+| where ActivityStatus == "Succeeded"
+| where ResourceId contains "<your-vm-name>"
+| project TimeGenerated, Caller, CallerIpAddress, OperationName, Properties, Authorization
