@@ -1,0 +1,14 @@
+AzureActivity
+| where ResourceProvider == "Microsoft.Compute"
+    and OperationName contains "virtualMachines/write"
+    and ActivityStatus == "Succeeded"
+| extend parsed = parse_json(Properties)
+| project 
+    TimeGenerated,
+    Caller,
+    ResourceId,
+    OperationName,
+    ActivityStatus,
+    Authorization,
+    CallerIpAddress
+| order by TimeGenerated desc
