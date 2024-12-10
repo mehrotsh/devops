@@ -1,14 +1,1 @@
-Shared Responsibility in SRE Training Sessions  
-
-
-
-As part of the handover from the SRE team, I’ve reviewed the training sessions currently being conducted on topics like SRE 101, Observability, SLOs, Toil, Blameless Postmortems, and Chaos Engineering. While these sessions are highly beneficial, some topics align more closely with the SRE domain than others.  
-
-I propose a shared responsibility for these sessions:  
-- **DevOps Team**: Focus on **Observability** and related practical tools.  
-- **SRE Team**: Continue leading sessions on topics like SRE 101, SLOs, Toil, Chaos Engineering, etc.  
-
-This division allows both teams to contribute effectively within their areas of expertise. I suggest a brief meeting to finalize this structure and ensure a smooth transition.  
-
-Looking forward to your thoughts.  
 
