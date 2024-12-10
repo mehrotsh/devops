@@ -1,32 +1,14 @@
-Sure, here are two sets of multiple-choice questions with their correct answers highlighted:
+Shared Responsibility in SRE Training Sessions  
 
-Before the training:
 
-What is DevOps?
-A. A programming language
-B. A cloud service
-C. A set of practices that combines software development and IT operations
-D. A type of software
-What is the traditional Waterfall Model in software development?
-A. A model where development and operations teams work together
-B. A model where development and operations teams work in silos
-C. A model where only the development team works on the software
-D. A model where only the operations team works on the software
-What is a common challenge in the traditional model of software development?
-A. Too much communication between teams
-B. Lack of communication and collaboration between development and operations teams
-C. Too many software releases
-D. Too few software releases
-After the training: 4. What is the main goal of DevOps? - A. To slow down the software development process - B. To eliminate the need for operations teams - C. To shorten the systems development life cycle and provide continuous delivery with high software quality - D. To increase the number of software releases
 
-How does the DevOps approach differ from the traditional Waterfall Model?
-A. The DevOps approach eliminates the need for a development team
-B. The DevOps approach requires more software releases
-C. The DevOps approach promotes collaboration between development and operations teams
-D. The DevOps approach requires fewer software releases
-What is a benefit of implementing DevOps in a software development lifecycle?
-A. Longer time to market
-B. Increased failure rate of new releases
-C. Faster time to market
-D. Longer lead time between fixes
-These questions should help you assess the participants’ understanding of the basic concepts of DevOps before and after the training. Remember to explain the correct answers after each question to ensure everyone understands the concepts. Good luck with your training! 😊
+As part of the handover from the SRE team, I’ve reviewed the training sessions currently being conducted on topics like SRE 101, Observability, SLOs, Toil, Blameless Postmortems, and Chaos Engineering. While these sessions are highly beneficial, some topics align more closely with the SRE domain than others.  
+
+I propose a shared responsibility for these sessions:  
+- **DevOps Team**: Focus on **Observability** and related practical tools.  
+- **SRE Team**: Continue leading sessions on topics like SRE 101, SLOs, Toil, Chaos Engineering, etc.  
+
+This division allows both teams to contribute effectively within their areas of expertise. I suggest a brief meeting to finalize this structure and ensure a smooth transition.  
+
+Looking forward to your thoughts.  
+
