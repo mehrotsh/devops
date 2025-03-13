@@ -1,0 +1,26 @@
+flowchart TD
+    A[Developer] -->|Merges code| B[User Repository]
+    B -->|Triggers| C[CI Pipeline]
+    C -->|Builds| D[Artifact]
+    C -->|Builds| E[Container Image]
+    D -->|Stored in| F[Nexus Repository]
+    E -->|Stored in| F
+    A -->|Manually updates\nimage version/tag| G[NCK Repository]
+    G -->|Used to create| H[Deploy Release]
+    H -->|Deployed using| I[DeployTool]
+    I -->|Deployed by| J{Deployment Actor}
+    J -->|Option 1| K[User]
+    J -->|Option 2| L[Support Team]
+    
+    classDef manual fill:#ffcccc,stroke:#ff9999
+    classDef automated fill:#ccffcc,stroke:#99ff99
+    classDef repository fill:#cce5ff,stroke:#99ccff
+    classDef tool fill:#ffffcc,stroke:#ffff99
+    classDef person fill:#e5ccff,stroke:#cc99ff
+    
+    class A,K,L person
+    class B,F,G repository
+    class C automated
+    class D,E,H automated
+    class I tool
+    class J manual
