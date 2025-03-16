@@ -1,0 +1,19 @@
+Imagine you're updating your phone with a new operating system. Instead of immediately installing it on everyone's phone worldwide, wouldn't it be safer to try it with a small group first to catch any problems?
+Flagger works just like that, but for software applications running in the cloud.
+What Flagger Does in Simple Terms
+Flagger is a tool that helps teams release new software updates more safely by using what we call "progressive deployment." Here's how it works:
+
+Small First, Then Grow: Instead of updating your entire application at once (which is risky), Flagger first updates just a small portion—maybe 5% of your servers.
+Automatic Testing: While that small portion is running the new version, Flagger automatically watches how it performs: Is it crashing? Is it slow? Are users experiencing errors?
+Gradual Expansion: If everything looks good, Flagger automatically increases the percentage—maybe to 20%, then 50%, and eventually 100%.
+Automatic Safety Net: If something goes wrong at any point, Flagger automatically rolls back to the previous working version before most users ever see a problem.
+
+The Benefits for Your Team
+Even if you're not a technical expert, you can appreciate these benefits:
+
+Reduced Risk: Problems affect only a small number of users before being detected
+Confidence: Your team can release updates more frequently without fear
+No Manual Work: The gradual rollout happens automatically, not manually
+Data-Driven Decisions: The system decides whether to proceed based on real performance data, not guesswork
+
+Flagger takes a process that used to be stressful, manual, and error-prone, and turns it into something automatic, measured, and safe.
