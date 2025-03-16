@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400">
+  <!-- Background -->
+  <rect width="800" height="400" fill="#f8f9fa" rx="5" ry="5"/>
+  
+  <!-- Title -->
+  <text x="400" y="30" font-family="Arial, sans-serif" font-size="22" font-weight="bold" text-anchor="middle" fill="#333">Progressive Deployment with Flagger</text>
+  
+  <!-- Step 1: Initial State -->
+  <rect x="50" y="80" width="160" height="90" rx="5" ry="5" fill="#e3f2fd" stroke="#2196f3" stroke-width="2"/>
+  <text x="130" y="105" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="#333">Initial State</text>
+  <text x="130" y="130" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="#555">100% Traffic to</text>
+  <text x="130" y="150" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="#555">Original Version</text>
+  
+  <!-- Arrow 1 -->
+  <line x1="210" y1="125" x2="260" y2="125" stroke="#666" stroke-width="2"/>
+  <polygon points="258,120 270,125 258,130" fill="#666"/>
+  
+  <!-- Step 2: Canary Release -->
+  <rect x="270" y="80" width="160" height="90" rx="5" ry="5" fill="#fff3e0" stroke="#ff9800" stroke-width="2"/>
+  <text x="350" y="105" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="#333">Canary Release</text>
+  <text x="350" y="130" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="#555">95% Original Version</text>
+  <text x="350" y="150" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="#555">5% New Version</text>
+  
+  <!-- Analysis Box -->
+  <rect x="270" y="190" width="160" height="60" rx="5" ry="5" fill="#e8f5e9" stroke="#4caf50" stroke-width="2"/>
+  <text x="350" y="220" font-family="Arial, sans-serif" font-size="12" font-weight="bold" text-anchor="middle" fill="#333">Flagger Analysis</text>
+  <text x="350" y="240" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" fill="#555">Metrics, Errors, Latency</text>
+  
+  <!-- Analysis Arrows -->
+  <line x1="350" y1="170" x2="350" y2="190" stroke="#4caf50" stroke-width="2" stroke-dasharray="5,3"/>
+  <line x1="350" y1="250" x2="350" y2="270" stroke="#4caf50" stroke-width="2" stroke-dasharray="5,3"/>
+  
+  <!-- Decision Diamond -->
+  <polygon points="350,270 380,300 350,330 320,300" fill="#f3e5f5" stroke="#9c27b0" stroke-width="2"/>
+  <text x="350" y="305" font-family="Arial, sans-serif" font-size="12" font-weight="bold" text-anchor="middle" fill="#333">OK?</text>
+  
+  <!-- Success Arrow -->
+  <line x1="380" y1="300" x2="430" y2="300" stroke="#4caf50" stroke-width="2"/>
+  <polygon points="428,295 440,300 428,305" fill="#4caf50"/>
+  <text x="405" y="290" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="#4caf50">Yes</text>
+  
+  <!-- Failure Arrow -->
+  <line x1="320" y1="300" x2="270" y2="300" stroke="#f44336" stroke-width="2"/>
+  <polygon points="272,305 260,300 272,295" fill="#f44336"/>
+  <text x="295" y="290" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="#f44336">No</text>
+  
+  <!-- Rollback -->
+  <rect x="100" y="255" width="160" height="90" rx="5" ry="5" fill="#ffebee" stroke="#f44336" stroke-width="2"/>
+  <text x="180" y="280" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="#333">Rollback</text>
+  <text x="180" y="305" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="#555">Return to</text>
+  <text x="180" y="325" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="#555">Original Version</text>
+  
+  <!-- Progressive Steps -->
+  <rect x="440" y="80" width="160" height="90" rx="5" ry="5" fill="#fff3e0" stroke="#ff9800" stroke-width="2"/>
+  <text x="520" y="105" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="#333">Progressive Shift</text>
+  <text x="520" y="130" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="#555">50% Original Version</text>
+  <text x="520" y="150" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="#555">50% New Version</text>
+  
+  <!-- Final Arrow -->
+  <line x1="600" y1="125" x2="650" y2="125" stroke="#666" stroke-width="2"/>
+  <polygon points="648,120 660,125 648,130" fill="#666"/>
+  
+  <!-- Final State -->
+  <rect x="660" y="80" width="160" height="90" rx="5" ry="5" fill="#e8f5e9" stroke="#4caf50" stroke-width="2"/>
+  <text x="740" y="105" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="#333">Full Deployment</text>
+  <text x="740" y="130" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="#555">100% Traffic to</text>
+  <text x="740" y="150" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="#555">New Version</text>
+  
+  <!-- Progressive Arrow -->
+  <line x1="440" y1="300" x2="520" y2="300" stroke="#4caf50" stroke-width="2"/>
+  <line x1="520" y1="300" x2="520" y2="170" stroke="#4caf50" stroke-width="2"/>
+  <polygon points="515,172 520,160 525,172" fill="#4caf50"/>
+  
+  <!-- Legend -->
+  <rect x="50" y="350" width="700" height="30" rx="5" ry="5" fill="#f5f5f5" stroke="#e0e0e0" stroke-width="1"/>
+  <circle cx="80" cy="365" r="6" fill="#4caf50"/>
+  <text x="95" y="370" font-family="Arial, sans-serif" font-size="12" fill="#555">Automated Analysis</text>
+  <circle cx="240" cy="365" r="6" fill="#f44336"/>
+  <text x="255" y="370" font-family="Arial, sans-serif" font-size="12" fill="#555">Automated Rollback</text>
+  <circle cx="400" cy="365" r="6" fill="#ff9800"/>
+  <text x="415" y="370" font-family="Arial, sans-serif" font-size="12" fill="#555">Traffic Shifting</text>
+  <circle cx="560" cy="365" r="6" fill="#2196f3"/>
+  <text x="575" y="370" font-family="Arial, sans-serif" font-size="12" fill="#555">Application Versions</text>
+</svg>
