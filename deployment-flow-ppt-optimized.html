@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background-color: white;
+      margin: 0;
+      padding: 0;
+      color: #333;
+    }
+    
+    .slide-container {
+      width: 960px;
+      height: 540px; /* 16:9 slide ratio */
+      position: relative;
+      overflow: hidden;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+    
+    h2 {
+      text-align: center;
+      color: #333;
+      margin: 0 0 10px 0;
+      font-weight: 600;
+      font-size: 18px;
+    }
+    
+    .flow-diagram {
+      display: flex;
+      justify-content: space-between;
+      height: 450px;
+    }
+    
+    .column {
+      display: flex;
+      flex-direction: column;
+      width: 32%;
+      background-color: #f8f9fa;
+      border-radius: 4px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+      padding: 10px;
+    }
+    
+    .phase-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: #555;
+      text-transform: uppercase;
+      text-align: center;
+      margin-bottom: 5px;
+      background-color: #eaeaea;
+      padding: 3px;
+      border-radius: 3px;
+    }
+    
+    .flow-content {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      flex-grow: 1;
+    }
+    
+    .node {
+      padding: 6px 8px;
+      border-radius: 3px;
+      text-align: center;
+      font-size: 11px;
+      font-weight: 500;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+      width: 90%;
+      margin: 3px 0;
+      color: white;
+    }
+    
+    .arrow-vertical {
+      height: 15px;
+      width: 2px;
+      background-color: #bbb;
+      position: relative;
+    }
+    
+    .arrow-vertical::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: -3px;
+      width: 0;
+      height: 0;
+      border-top: 6px solid #bbb;
+      border-left: 4px solid transparent;
+      border-right: 4px solid transparent;
+    }
+    
+    .arrow-label {
+      font-size: 9px;
+      padding: 1px 4px;
+      background-color: #f0f0f0;
+      border-radius: 8px;
+      color: #555;
+      margin: 1px 0;
+      text-align: center;
+      max-width: 90%;
+    }
+    
+    .split {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      flex-grow: 1;
+    }
+    
+    .branches {
+      display: flex;
+      justify-content: space-around;
+      width: 100%;
+    }
+    
+    .branch {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 48%;
+    }
+    
+    .spacer {
+      flex-grow: 1;
+    }
+    
+    .automated {
+      background-color: #4285F4;
+      border: 1px solid #0D47A1;
+    }
+    
+    .repository {
+      background-color: #34A853;
+      border: 1px solid #1B5E20;
+    }
+    
+    .manual {
+      background-color: #FBBC05;
+      border: 1px solid #F57F17;
+      color: black;
+    }
+    
+    .deployment {
+      background-color: #EA4335;
+      border: 1px solid #B71C1C;
+    }
+    
+    .legend {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      margin-top: 10px;
+      font-size: 9px;
+    }
+    
+    .legend-item {
+      display: flex;
+      align-items: center;
+    }
+    
+    .legend-color {
+      width: 10px;
+      height: 10px;
+      margin-right: 3px;
+      border-radius: 2px;
+    }
+  </style>
+</head>
+<body>
+  <div class="slide-container">
+    <h2>Enterprise Deployment Process Flow</h2>
+    
+    <div class="flow-diagram">
+      <!-- Build Phase -->
+      <div class="column">
+        <div class="phase-title">Build Phase</div>
+        <div class="flow-content">
+          <div class="node repository">Developer</div>
+          <div class="arrow-label">Merges code</div>
+          <div class="arrow-vertical"></div>
+          
+          <div class="node repository">Repository</div>
+          <div class="arrow-vertical"></div>
+          
+          <div class="node automated">CI Pipeline</div>
+          <div class="arrow-vertical"></div>
+          
+          <div class="branches">
+            <div class="branch">
+              <div class="arrow-label">Builds</div>
+              <div class="arrow-vertical"></div>
+              <div class="node automated">Artifact</div>
+            </div>
+            
+            <div class="branch">
+              <div class="arrow-label">Builds</div>
+              <div class="arrow-vertical"></div>
+              <div class="node automated">Container Image</div>
+              <div class="arrow-vertical"></div>
+              <div class="node automated">Nexus Registry</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Release Configuration -->
+      <div class="column">
+        <div class="phase-title">Release Configuration</div>
+        <div class="flow-content">
+          <div class="spacer"></div>
+          <div class="node manual">Manual Update</div>
+          <div class="arrow-label">User updates image version/tag</div>
+          <div class="arrow-vertical"></div>
+          
+          <div class="node repository">NCK Repository</div>
+          <div class="arrow-vertical"></div>
+          
+          <div class="node repository">Build Deploy Release</div>
+          <div class="spacer"></div>
+        </div>
+      </div>
+      
+      <!-- Deployment Phase -->
+      <div class="column">
+        <div class="phase-title">Deployment Phase</div>
+        <div class="flow-content">
+          <div class="spacer"></div>
+          <div class="spacer"></div>
+          <div class="node deployment">Deployment</div>
+          <div class="arrow-vertical"></div>
+          
+          <div class="branches">
+            <div class="branch">
+              <div class="arrow-label">Option 1</div>
+              <div class="arrow-vertical"></div>
+              <div class="node manual">User Manual Deployment</div>
+            </div>
+            
+            <div class="branch">
+              <div class="arrow-label">Option 2</div>
+              <div class="arrow-vertical"></div>
+              <div class="node manual">Support Team Manual Deployment</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Legend -->
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-color" style="background-color: #4285F4; border: 1px solid #0D47A1;"></div>
+        <span>Automated Process</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color" style="background-color: #34A853; border: 1px solid #1B5E20;"></div>
+        <span>Repository</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color" style="background-color: #FBBC05; border: 1px solid #F57F17;"></div>
+        <span>Manual Process</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color" style="background-color: #EA4335; border: 1px solid #B71C1C;"></div>
+        <span>Deployment</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
