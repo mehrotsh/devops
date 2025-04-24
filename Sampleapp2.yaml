@@ -1,0 +1,710 @@
+---
+# Namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: grafana-mltp
+---
+# ConfigMap for Alloy (Grafana Alloy is a metrics aggregator)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alloy-config
+  namespace: grafana-mltp
+data:
+  config.yaml: |
+    server:
+      http_listen_port: 12345
+    
+    distributor:
+      receivers:
+        otlp:
+          protocols:
+            http:
+              endpoint: 0.0.0.0:4318
+            grpc:
+              endpoint: 0.0.0.0:4317
+        prometheus:
+          http_listen_address: 0.0.0.0
+          http_listen_port: 9090
+    
+    metrics:
+      wal_directory: /tmp/wal
+      storage:
+        backend: local
+        local:
+          directory: /tmp/metrics
+---
+# Alloy Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alloy
+  namespace: grafana-mltp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: alloy
+  template:
+    metadata:
+      labels:
+        app: alloy
+    spec:
+      containers:
+      - name: alloy
+        image: grafana/alloy:latest
+        args: ["--config.file=/etc/alloy/config.yaml"]
+        ports:
+        - containerPort: 12345
+          name: http
+        - containerPort: 4317
+          name: otlp-grpc
+        - containerPort: 4318
+          name: otlp-http
+        - containerPort: 9090
+          name: prometheus
+        volumeMounts:
+        - name: alloy-config
+          mountPath: /etc/alloy/config.yaml
+          subPath: config.yaml
+        - name: alloy-data
+          mountPath: /tmp/metrics
+        - name: alloy-wal
+          mountPath: /tmp/wal
+      volumes:
+      - name: alloy-config
+        configMap:
+          name: alloy-config
+      - name: alloy-data
+        emptyDir: {}
+      - name: alloy-wal
+        emptyDir: {}
+---
+# Alloy Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: alloy
+  namespace: grafana-mltp
+spec:
+  selector:
+    app: alloy
+  ports:
+  - port: 12345
+    targetPort: 12345
+    name: http
+  - port: 4317
+    targetPort: 4317
+    name: otlp-grpc
+  - port: 4318
+    targetPort: 4318 
+    name: otlp-http
+  - port: 9090
+    targetPort: 9090
+    name: prometheus
+  type: ClusterIP
+---
+# Mythical Queue (RabbitMQ) Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mythical-queue
+  namespace: grafana-mltp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mythical-queue
+  template:
+    metadata:
+      labels:
+        app: mythical-queue
+    spec:
+      containers:
+      - name: rabbitmq
+        image: rabbitmq:3-management
+        ports:
+        - containerPort: 5672
+          name: amqp
+        - containerPort: 15672
+          name: management
+        env:
+        - name: RABBITMQ_DEFAULT_USER
+          value: "guest"
+        - name: RABBITMQ_DEFAULT_PASS
+          value: "guest"
+        volumeMounts:
+        - name: rabbitmq-data
+          mountPath: /var/lib/rabbitmq
+      volumes:
+      - name: rabbitmq-data
+        emptyDir: {}
+---
+# Mythical Queue Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: mythical-queue
+  namespace: grafana-mltp
+spec:
+  selector:
+    app: mythical-queue
+  ports:
+  - port: 5672
+    targetPort: 5672
+    name: amqp
+  - port: 15672
+    targetPort: 15672
+    name: management
+  type: ClusterIP
+---
+# Mythical Database (PostgreSQL) PVC
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mythical-db-pvc
+  namespace: grafana-mltp
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+# Mythical Database Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mythical-database
+  namespace: grafana-mltp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mythical-database
+  template:
+    metadata:
+      labels:
+        app: mythical-database
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:14
+        ports:
+        - containerPort: 5432
+          name: postgres
+        env:
+        - name: POSTGRES_USER
+          value: "postgres"
+        - name: POSTGRES_PASSWORD
+          value: "postgres"
+        - name: POSTGRES_DB
+          value: "mythical"
+        volumeMounts:
+        - name: postgres-data
+          mountPath: /var/lib/postgresql/data
+      volumes:
+      - name: postgres-data
+        persistentVolumeClaim:
+          claimName: mythical-db-pvc
+---
+# Mythical Database Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: mythical-database
+  namespace: grafana-mltp
+spec:
+  selector:
+    app: mythical-database
+  ports:
+  - port: 5432
+    targetPort: 5432
+    name: postgres
+  type: ClusterIP
+---
+# Mythical Requester Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mythical-requester
+  namespace: grafana-mltp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mythical-requester
+  template:
+    metadata:
+      labels:
+        app: mythical-requester
+    spec:
+      containers:
+      - name: mythical-requester
+        image: grafana/mythical-requester:latest
+        env:
+        - name: SERVER_ENDPOINT
+          value: "http://mythical-server:8080"
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: "http://alloy:4317"
+---
+# Mythical Server Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mythical-server
+  namespace: grafana-mltp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mythical-server
+  template:
+    metadata:
+      labels:
+        app: mythical-server
+    spec:
+      containers:
+      - name: mythical-server
+        image: grafana/mythical-server:latest
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: POSTGRES_HOST
+          value: "mythical-database"
+        - name: POSTGRES_PORT
+          value: "5432"
+        - name: POSTGRES_USER
+          value: "postgres"
+        - name: POSTGRES_PASSWORD
+          value: "postgres"
+        - name: POSTGRES_DB
+          value: "mythical"
+        - name: AMQP_URL
+          value: "amqp://guest:guest@mythical-queue:5672/"
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: "http://alloy:4317"
+---
+# Mythical Server Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: mythical-server
+  namespace: grafana-mltp
+spec:
+  selector:
+    app: mythical-server
+  ports:
+  - port: 8080
+    targetPort: 8080
+    name: http
+  type: ClusterIP
+---
+# Mythical Recorder Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mythical-recorder
+  namespace: grafana-mltp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mythical-recorder
+  template:
+    metadata:
+      labels:
+        app: mythical-recorder
+    spec:
+      containers:
+      - name: mythical-recorder
+        image: grafana/mythical-recorder:latest
+        env:
+        - name: AMQP_URL
+          value: "amqp://guest:guest@mythical-queue:5672/"
+        - name: POSTGRES_HOST
+          value: "mythical-database"
+        - name: POSTGRES_PORT
+          value: "5432"
+        - name: POSTGRES_USER
+          value: "postgres"
+        - name: POSTGRES_PASSWORD
+          value: "postgres"
+        - name: POSTGRES_DB
+          value: "mythical"
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: "http://alloy:4317"
+---
+# K6 Load Testing Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: k6
+  namespace: grafana-mltp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: k6
+  template:
+    metadata:
+      labels:
+        app: k6
+    spec:
+      containers:
+      - name: k6
+        image: grafana/k6:latest
+        command: ["sleep", "infinity"]
+        env:
+        - name: K6_PROMETHEUS_RW_SERVER_URL
+          value: "http://alloy:9090/api/v1/write"
+        volumeMounts:
+        - name: k6-scripts
+          mountPath: /scripts
+      volumes:
+      - name: k6-scripts
+        emptyDir: {}
+---
+# ConfigMap for Beyla configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: beyla-config
+  namespace: grafana-mltp
+data:
+  config.yaml: |
+    processors:
+      service_name:
+        name: "mythical-app"
+      attributes:
+        - action: insert
+          key: "environment"
+          value: "dev"
+    
+    exporters:
+      otlp:
+        endpoint: "alloy:4317"
+        protocol: "grpc"
+---
+# Beyla Requester Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: beyla-requester
+  namespace: grafana-mltp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: beyla-requester
+  template:
+    metadata:
+      labels:
+        app: beyla-requester
+    spec:
+      containers:
+      - name: beyla
+        image: grafana/beyla:latest
+        securityContext:
+          privileged: true
+          capabilities:
+            add: ["SYS_PTRACE", "BPF"]
+        volumeMounts:
+        - name: beyla-config
+          mountPath: /etc/beyla/config.yaml
+          subPath: config.yaml
+        - name: debugfs
+          mountPath: /sys/kernel/debug
+        - name: bpffs
+          mountPath: /sys/fs/bpf
+        env:
+        - name: BEYLA_LISTEN_PORT
+          value: "8080"
+        - name: BEYLA_MONITORED_PROCESS
+          value: "mythical-requester"
+      - name: mythical-requester
+        image: grafana/mythical-requester:latest
+        env:
+        - name: SERVER_ENDPOINT
+          value: "http://mythical-server:8080"
+      volumes:
+      - name: beyla-config
+        configMap:
+          name: beyla-config
+      - name: debugfs
+        hostPath:
+          path: /sys/kernel/debug
+      - name: bpffs
+        hostPath:
+          path: /sys/fs/bpf
+---
+# Beyla Server Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: beyla-server
+  namespace: grafana-mltp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: beyla-server
+  template:
+    metadata:
+      labels:
+        app: beyla-server
+    spec:
+      containers:
+      - name: beyla
+        image: grafana/beyla:latest
+        securityContext:
+          privileged: true
+          capabilities:
+            add: ["SYS_PTRACE", "BPF"]
+        volumeMounts:
+        - name: beyla-config
+          mountPath: /etc/beyla/config.yaml
+          subPath: config.yaml
+        - name: debugfs
+          mountPath: /sys/kernel/debug
+        - name: bpffs
+          mountPath: /sys/fs/bpf
+        env:
+        - name: BEYLA_LISTEN_PORT 
+          value: "8080"
+        - name: BEYLA_MONITORED_PROCESS
+          value: "mythical-server"
+      - name: mythical-server
+        image: grafana/mythical-server:latest
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: POSTGRES_HOST
+          value: "mythical-database"
+        - name: POSTGRES_PORT
+          value: "5432"
+        - name: POSTGRES_USER
+          value: "postgres"
+        - name: POSTGRES_PASSWORD
+          value: "postgres"
+        - name: POSTGRES_DB
+          value: "mythical"
+        - name: AMQP_URL
+          value: "amqp://guest:guest@mythical-queue:5672/"
+      volumes:
+      - name: beyla-config
+        configMap:
+          name: beyla-config
+      - name: debugfs
+        hostPath:
+          path: /sys/kernel/debug
+      - name: bpffs
+        hostPath:
+          path: /sys/fs/bpf
+---
+# Beyla Server Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: beyla-server
+  namespace: grafana-mltp
+spec:
+  selector:
+    app: beyla-server
+  ports:
+  - port: 8080
+    targetPort: 8080
+    name: http
+  type: ClusterIP
+---
+# Beyla Recorder Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: beyla-recorder
+  namespace: grafana-mltp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: beyla-recorder
+  template:
+    metadata:
+      labels:
+        app: beyla-recorder
+    spec:
+      containers:
+      - name: beyla
+        image: grafana/beyla:latest
+        securityContext:
+          privileged: true
+          capabilities:
+            add: ["SYS_PTRACE", "BPF"]
+        volumeMounts:
+        - name: beyla-config
+          mountPath: /etc/beyla/config.yaml
+          subPath: config.yaml
+        - name: debugfs
+          mountPath: /sys/kernel/debug
+        - name: bpffs
+          mountPath: /sys/fs/bpf
+        env:
+        - name: BEYLA_MONITORED_PROCESS
+          value: "mythical-recorder"
+      - name: mythical-recorder
+        image: grafana/mythical-recorder:latest
+        env:
+        - name: AMQP_URL
+          value: "amqp://guest:guest@mythical-queue:5672/"
+        - name: POSTGRES_HOST
+          value: "mythical-database"
+        - name: POSTGRES_PORT
+          value: "5432"
+        - name: POSTGRES_USER
+          value: "postgres"
+        - name: POSTGRES_PASSWORD
+          value: "postgres"
+        - name: POSTGRES_DB
+          value: "mythical"
+      volumes:
+      - name: beyla-config
+        configMap:
+          name: beyla-config
+      - name: debugfs
+        hostPath:
+          path: /sys/kernel/debug
+      - name: bpffs
+        hostPath:
+          path: /sys/fs/bpf
+---
+# Pyroscope (Continuous Profiling) ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pyroscope-config
+  namespace: grafana-mltp
+data:
+  config.yaml: |
+    server:
+      http_listen_port: 4040
+    
+    scrape_configs:
+      - job_name: "mythical-apps"
+        scrape_interval: 10s
+        static_configs:
+          - targets: ["mythical-server:4040", "mythical-requester:4040", "mythical-recorder:4040"]
+---
+# Pyroscope Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pyroscope
+  namespace: grafana-mltp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pyroscope
+  template:
+    metadata:
+      labels:
+        app: pyroscope
+    spec:
+      containers:
+      - name: pyroscope
+        image: grafana/pyroscope:latest
+        args: ["--config.file=/etc/pyroscope/config.yaml"]
+        ports:
+        - containerPort: 4040
+          name: http
+        volumeMounts:
+        - name: pyroscope-config
+          mountPath: /etc/pyroscope/config.yaml
+          subPath: config.yaml
+        - name: pyroscope-data
+          mountPath: /var/lib/pyroscope
+      volumes:
+      - name: pyroscope-config
+        configMap:
+          name: pyroscope-config
+      - name: pyroscope-data
+        emptyDir: {}
+---
+# Pyroscope Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: pyroscope
+  namespace: grafana-mltp
+spec:
+  selector:
+    app: pyroscope
+  ports:
+  - port: 4040
+    targetPort: 4040
+    name: http
+  type: ClusterIP
+---
+# Ingress for accessing the services
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: grafana-mltp-ingress
+  namespace: grafana-mltp
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - host: alloy.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: alloy
+            port:
+              number: 12345
+  - host: mythical-server.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: mythical-server
+            port:
+              number: 8080
+  - host: beyla-server.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: beyla-server
+            port:
+              number: 8080
+  - host: pyroscope.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: pyroscope
+            port:
+              number: 4040
+  - host: queue-mgmt.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: mythical-queue
+            port:
+              number: 15672
