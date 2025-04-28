@@ -1,0 +1,323 @@
+# PersistentVolumeClaims for Postgres and Grafana data
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: managed-premium
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: grafana-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: managed-premium
+
+# RabbitMQ Deployment and Service
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mythical-queue
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mythical-queue
+  template:
+    metadata:
+      labels:
+        app: mythical-queue
+    spec:
+      containers:
+      - name: rabbitmq
+        image: rabbitmq:management
+        ports:
+        - containerPort: 5672
+        - containerPort: 15672
+        readinessProbe:
+          exec:
+            command:
+            - rabbitmq-diagnostics
+            - check_running
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 30
+          failureThreshold: 10
+        livenessProbe:
+          exec:
+            command:
+            - rabbitmq-diagnostics
+            - check_running
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 30
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mythical-queue
+spec:
+  selector:
+    app: mythical-queue
+  ports:
+  - name: amqp
+    port: 5672
+    targetPort: 5672
+  - name: management
+    port: 15672
+    targetPort: 15672
+  type: ClusterIP
+
+# Postgres Deployment and Service
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mythical-database
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mythical-database
+  template:
+    metadata:
+      labels:
+        app: mythical-database
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:14.5
+        env:
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mythical-secrets
+              key: postgres-password
+        ports:
+        - containerPort: 5432
+        volumeMounts:
+        - name: postgres-data
+          mountPath: /var/lib/postgresql/data
+      volumes:
+      - name: postgres-data
+        persistentVolumeClaim:
+          claimName: postgres-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mythical-database
+spec:
+  selector:
+    app: mythical-database
+  ports:
+  - port: 5432
+    targetPort: 5432
+  type: ClusterIP
+
+# Mythical-Requester Deployment and Service
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mythical-requester
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mythical-requester
+  template:
+    metadata:
+      labels:
+        app: mythical-requester
+    spec:
+      containers:
+      - name: mythical-requester
+        image: grafana/intro-to-mltp:mythical-beasts-requester-latest
+        ports:
+        - containerPort: 4001
+        env:
+        - name: NAMESPACE
+          value: "production"
+        - name: LOGS_TARGET
+          value: "http://alloy:3100/loki/api/v1/push"
+        - name: TRACING_COLLECTOR_HOST
+          value: "alloy"
+        - name: TRACING_COLLECTOR_PORT
+          value: "4317"
+        - name: PROFILE_COLLECTOR_HOST
+          value: "alloy"
+        - name: PROFILE_COLLECTOR_PORT
+          value: "4040"
+        - name: OTEL_EXPORTER_OTLP_TRACES_INSECURE
+          value: "true"
+        - name: OTEL_RESOURCE_ATTRIBUTES
+          value: "ip=1.2.3.4"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mythical-requester
+spec:
+  selector:
+    app: mythical-requester
+  ports:
+  - port: 4001
+    targetPort: 4001
+  type: ClusterIP
+
+# Mythical-Server Deployment and Service
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mythical-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mythical-server
+  template:
+    metadata:
+      labels:
+        app: mythical-server
+    spec:
+      containers:
+      - name: mythical-server
+        image: grafana/intro-to-mltp:mythical-beasts-server-latest
+        ports:
+        - containerPort: 4000
+        - containerPort: 80
+        env:
+        - name: NAMESPACE
+          value: "production"
+        - name: LOGS_TARGET
+          value: "http://alloy:3100/loki/api/v1/push"
+        - name: TRACING_COLLECTOR_HOST
+          value: "alloy"
+        - name: TRACING_COLLECTOR_PORT
+          value: "4317"
+        - name: PROFILE_COLLECTOR_HOST
+          value: "alloy"
+        - name: PROFILE_COLLECTOR_PORT
+          value: "4040"
+        - name: OTEL_EXPORTER_OTLP_TRACES_INSECURE
+          value: "true"
+        - name: OTEL_RESOURCE_ATTRIBUTES
+          value: "ip=1.2.3.5"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mythical-server
+spec:
+  selector:
+    app: mythical-server
+  ports:
+  - name: api
+    port: 4000
+    targetPort: 4000
+  - name: http
+    port: 80
+    targetPort: 80
+  type: ClusterIP
+
+# Mythical-Recorder Deployment and Service
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mythical-recorder
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mythical-recorder
+  template:
+    metadata:
+      labels:
+        app: mythical-recorder
+    spec:
+      containers:
+      - name: mythical-recorder
+        image: grafana/intro-to-mltp:mythical-beasts-recorder-latest
+        ports:
+        - containerPort: 4002
+        env:
+        - name: NAMESPACE
+          value: "production"
+        - name: LOGS_TARGET
+          value: "http://alloy:3100/loki/api/v1/push"
+        - name: TRACING_COLLECTOR_HOST
+          value: "alloy"
+        - name: TRACING_COLLECTOR_PORT
+          value: "4317"
+        - name: PROFILE_COLLECTOR_HOST
+          value: "alloy"
+        - name: PROFILE_COLLECTOR_PORT
+          value: "4040"
+        - name: OTEL_EXPORTER_OTLP_TRACES_INSECURE
+          value: "true"
+        - name: OTEL_RESOURCE_ATTRIBUTES
+          value: "ip=1.2.3.5"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mythical-recorder
+spec:
+  selector:
+    app: mythical-recorder
+  ports:
+  - port: 4002
+    targetPort: 4002
+  type: ClusterIP
+
+# Secret for storing Postgres password
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mythical-secrets
+type: Opaque
+stringData:
+  postgres-password: "mythical"
+
+# Optional: Ingress for external access
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: mythical-ingress
+  annotations:
+    kubernetes.io/ingress.class: "azure/application-gateway"
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: mythical-server
+            port: 
+              number: 80
+      - path: /requester
+        pathType: Prefix
+        backend:
+          service:
+            name: mythical-requester
+            port:
+              number: 4001
