@@ -6,3 +6,6 @@
 /explore?orgId=1&schemaVersion=1&panes={"v1":{"datasource":"tempo","queries":[{"refId":"A","queryType":"traceql","query":"{ .http.target = \"${__data.fields.http_target}\" && .http.status_code = ${__data.fields.http_status_code} }"}]}}
 
 /explore?orgId=1&left={"datasource":"tempo","queries":[{"refId":"A","datasource":{"type":"tempo","uid":"tempo"},"queryType":"traceql","limit":20,"query":"{ .http.status_code = ${__data.fields.http_status_code} }"}]}
+
+
+/explore?orgId=1&left=%7B%22datasource%22%3A%22tempo%22%2C%22queries%22%3A%5B%7B%22refId%22%3A%22A%22%2C%22datasource%22%3A%7B%22type%22%3A%22tempo%22%2C%22uid%22%3A%22tempo%22%7D%2C%22queryType%22%3A%22traceql%22%2C%22limit%22%3A20%2C%22query%22%3A%22%7B%20.http.target%20%3D%20%5C%22%24%7B__data.fields.http_target%7D%5C%22%20%26%26%20.http.status_code%20%3D%20%24%7B__data.fields.http_status_code%7D%20%7D%22%7D%5D%2C%22range%22%3A%7B%22from%22%3A%22now-1h%22%2C%22to%22%3A%22now%22%7D%7D
