@@ -37,3 +37,15 @@ Alternatively, if you're still having issues, you might try the most basic appro
 ```
 
 This last approach bypasses the complex JSON structure entirely and uses simpler URL parameters, which might be more reliable in some Grafana versions.
+
+
+
+
+
+
+
+{
+  "targetBlank": true,
+  "title": "Traces for Status Code/Endpoint",
+  "url": "/explore?orgId=1&left=%7B%22datasource%22:%22tempo%22,%22queries%22:[%7B%22refId%22:%22A%22,%22datasource%22:%7B%22type%22:%22tempo%22,%22uid%22:%22tempo%22%7D,%22queryType%22:%22traceql%22,%22limit%22:20,%22query%22:%22%7B%20.http.target%20%3D%20%5C%22${__data.fields.http_target}%5C%22%20%26%26%20.http.status_code%20%3D%20${__data.fields.http_status_code}%20%7D%22%7D],%22range%22:%7B%22from%22:%22now-1h%22,%22to%22:%22now%22%7D%7D"
+}
