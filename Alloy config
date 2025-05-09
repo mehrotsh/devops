@@ -1,0 +1,117 @@
+///////////////////////////////////////////////////////////////////////////////
+// Configuration file
+local.file "endpoints" {
+    // The endpoints file is used to define the endpoints, credentials and options
+    // for the Alloy export to.
+    filename = "/etc/alloy/endpoints.json"
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Discovery for Node Exporter pods
+discovery.kubernetes "node_exporter_pods" {
+    role = "pod"
+    selectors {
+        role = "pod"
+        label = "app.kubernetes.io/name=node-exporter"  // Adjust label selector to match your Node Exporter pods
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Relabeling to properly format the Node Exporter targets
+prometheus.relabel "node_exporter_pods" {
+    forward_to = [prometheus.scrape.node_exporter.receiver]
+
+    inputs = [discovery.kubernetes.node_exporter_pods.targets]
+
+    // Keep only pods with scrape annotation
+    rule {
+        source_labels = ["__meta_kubernetes_pod_annotation_prometheus_io_scrape"]
+        regex = "true"
+        action = "keep"
+    }
+    
+    // Keep only ports named metrics
+    rule {
+        source_labels = ["__meta_kubernetes_pod_container_port_name"]
+        regex = "metrics"
+        action = "keep"
+    }
+    
+    // Set the target address using pod IP with Node Exporter port
+    rule {
+        source_labels = ["__meta_kubernetes_pod_ip"]
+        target_label = "__address__"
+        replacement = "${1}:9100"  // Adjust port if your Node Exporter uses a different one
+    }
+    
+    // Preserve node name as a label
+    rule {
+        source_labels = ["__meta_kubernetes_pod_node_name"]
+        target_label = "node"
+    }
+    
+    // Preserve pod name as a label
+    rule {
+        source_labels = ["__meta_kubernetes_pod_name"]
+        target_label = "pod"
+    }
+    
+    // Preserve namespace as a label
+    rule {
+        source_labels = ["__meta_kubernetes_namespace"]
+        target_label = "namespace"
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Scrape configuration for Node Exporter pods
+prometheus.scrape "node_exporter" {
+    // We'll receive targets from the relabeling component
+    targets = []
+    scrape_interval = "15s"
+    scrape_timeout = "10s"
+    forward_to = [prometheus.remote_write.mimir.receiver]
+    job_name = "node-exporter"
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Remote write configuration for Mimir
+prometheus.remote_write "mimir" {
+    endpoint {
+        url = "http://mimir-gateway/api/v1/push"
+        send_exemplars = true
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Loki configuration
+loki.source.file "logs" {
+    targets = []
+    forward_to = [loki.write.loki.receiver]
+}
+
+loki.write "loki" {
+    endpoint {
+        url = "http://loki-gateway/loki/api/v1/push"
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Traces configuration
+otelcol.receiver.otlp "traces" {
+    grpc {
+        endpoint = "0.0.0.0:4317"
+    }
+    http {
+        endpoint = "0.0.0.0:4318"
+    }
+    output {
+        traces = [otelcol.exporter.otlp.tempo.input]
+    }
+}
+
+otelcol.exporter.otlp "tempo" {
+    client {
+        endpoint = "tempo-gateway:4317"
+    }
+}
