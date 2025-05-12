@@ -1,0 +1,1230 @@
+Gemini
+
+2.5 Pro (preview)
+
+Try Gemini Advanced
+
+
+
+
+Show more
+
+Conversation with Gemini
+you are a seasoned site reliability engineer with expertise in grafana lgtm stack implementation and application monitoring:
+
+Draft a full-scale detailed plan of setting up a grafana lgtm stack on aks for observability of multiple teir 1 grade applications. Plan should include a detailed and comprehensive size capacity planning stratergy, testing and monitoring stratergy of lgtm stack ( for its components and infra) .
+
+It should have a detailed stratergy on how to use alloy agent by grafana to collect logs, metrics and traces from different application and send to centralized lgtm stack. For sake of an example should there be 2 agents, one at application end and one at lgtm end in this scenario alloy agent at app end will add necessary labels and drop unneeded metrics,logs and traces, the alloy agent at lgtm end will check for the necessary labels etc(plese be aware that this is just an example, you are free to provide stratergy which you beleive is best suited, not just this 2 agent one whose example i have just given).
+
+Startergy should include templatization of config.alloy to swiftly onboard different application. 
+
+Stratergy should also include filtering of scenarios like high cardinality metrics, debug logs, unnneccessary traces etc at source alloy agent.
+
+Detailed planning documentation on onboarding applications for monitoring using alloy agent which sends metrics,logsa dn traces to lgtm setup.
+
+in the end draft me epics and associated issues for each epic to get this done as part of project
+
+
+
+
+Show thinking
+Full-Scale Detailed Plan: Grafana LGTM Stack on AKS for Tier 1 Application Observability
+This document outlines a comprehensive plan for establishing a robust and scalable Grafana LGTM (Loki, Grafana, Tempo, Mimir) stack on Azure Kubernetes Service (AKS). This setup will provide centralized observability for multiple Tier 1 grade applications, leveraging Grafana Alloy for efficient data collection.
+
+Project Goal: To implement a production-ready, highly available, and performant Grafana LGTM stack on AKS, enabling comprehensive monitoring (logs, metrics, traces) for critical Tier 1 applications, with streamlined application onboarding and proactive stack monitoring.
+
+Date: May 13, 2025
+
+1. Core Tenets & Strategy
+Centralized Observability: A single pane of glass (Grafana) for logs (Loki), metrics (Mimir), and traces (Tempo).
+Scalability & Resilience: Design for horizontal scalability and high availability of all LGTM components on AKS.
+Cost Efficiency: Optimize storage, compute, and data transfer costs through strategic data filtering, retention policies, and resource allocation.
+Automation: Automate deployment, configuration, and upgrades of the LGTM stack and Alloy agents.
+Security: Implement robust authentication, authorization, and network policies for the LGTM stack and data in transit/rest.
+Actionable Insights: Focus on collecting data that translates into actionable insights for application performance, reliability, and troubleshooting.
+Developer Self-Service: Enable application teams to easily onboard their applications and access their observability data.
+2. Grafana LGTM Stack Architecture on AKS
+This architecture will consist of the following core components deployed on an AKS cluster:
+
+Grafana: For visualization, dashboarding, and alerting.
+Loki: For log aggregation and querying.
+Components: Distributor, Ingester, Querier, Query Frontend, (Optional: Compactor, Ruler).
+Mimir: For long-term storage and querying of Prometheus-compatible metrics.
+Components: Distributor, Ingester, Querier, Query Frontend, Store-Gateway, Compactor, Ruler, Alertmanager.
+Tempo: For distributed tracing.
+Components: Distributor, Ingester, Querier, Query Frontend, Compactor, (Optional: Metrics Generator).
+Grafana Alloy (formerly Grafana Agent): Deployed as a DaemonSet on application AKS clusters and potentially as a central aggregator/processor within the LGTM AKS cluster.
+Supporting Infrastructure:
+Azure Blob Storage: For long-term storage for Loki (chunks, index), Mimir (blocks), and Tempo (blocks).
+Azure Cache for Redis (Optional but Recommended): For caching in Loki, Mimir, and Tempo to improve performance.
+Azure Load Balancers/Ingress Controllers (e.g., Nginx, Traefik, Application Gateway Ingress Controller): For exposing Grafana, Loki, Mimir, and Tempo endpoints.
+Prometheus Operator (Optional but Recommended): For managing Prometheus instances for Mimir scraping or for scraping LGTM components themselves.
+Cert-Manager: For automated TLS certificate management.
+Diagrammatic Representation (Conceptual):
+
++-------------------------------------------------+      +--------------------------------+
+| Application AKS Clusters (Multiple)             |      | Observability AKS Cluster (LGTM) |
+|                                                 |      |                                |
+|  +-----------------+   +-----------------+      |      |  +-----------+  +-----------+  |
+|  | App Pod / Node  |   | App Pod / Node  | ...  |      |  | Loki      |  | Mimir     |  |
+|  | +-------------+ |   | +-------------+ |      |      |  | (Dist,Ing,|  | (Dist,Ing,|  |
+|  | | Alloy Agent | ----> | Alloy Agent | -----(Data Flow)--> |  Quer,etc)|  | Quer,etc)|  |
+|  | | (Edge)      | |   | (Edge)      | |      |      |  +-----------+  +-----------+  |
+|  | +-------------+ |   | +-------------+ |      |      |                                |
+|  +-----------------+   +-----------------+      |      |  +-----------+  +-----------+  |
+|        |                                        |      |  | Tempo     |  | Grafana   |  |
+|        +------------(Config & Management)-------+      |  | (Dist,Ing,|  |           |  |
+|                                                 |      |  | Quer,etc)|  |           |  |
+|                                                 |      |  +-----------+  +-----------+  |
+|                                                 |      |                                |
+|                                                 |      |  +--------------------------+  |
+|                                                 |      |  | Optional: Central Alloy  |  |
+|                                                 |      |  | Agent (Processing/Routing)|  |
+|                                                 |      |  +--------------------------+  |
+|                                                 |      +--------------------------------+
+|                                                        |       ^       ^       ^        |
+|                                                        |       |       |       |        |
+|                                                        +-------+-------+-------+--------+
+|                                                          Azure Blob Storage (Logs, Metrics, Traces)
+|                                                          Azure Cache for Redis (Caching)
++-------------------------------------------------+
+3. Size and Capacity Planning Strategy
+This is a critical phase and requires an iterative approach.
+
+3.1. Data Ingestion Estimation (per Tier 1 Application):
+
+Logs:
+Volume: Average log lines per second/minute/hour, peak volume.
+Size: Average size per log line.
+Cardinality: Number of unique label combinations (e.g., app, namespace, level, instance).
+Retention: How long logs need to be stored (e.g., 7 days hot, 30 days cold).
+Metrics:
+Number of Series: Total active time series.
+Scrape Interval: Frequency of metric collection.
+Cardinality: Number of unique label combinations for metrics. High cardinality is a primary concern for Mimir.
+Retention: How long metrics need to be stored (e.g., 30 days hot, 1 year cold).
+Traces:
+Number of Spans: Average and peak spans per second/minute.
+Sampling Rate: Percentage of traces being collected.
+Size per Span: Average data size of a span.
+Retention: How long traces need to be stored (e.g., 14 days).
+3.2. LGTM Component Sizing:
+
+General Approach:
+
+Start with recommended defaults from Grafana Labs documentation for each component.
+Scale based on the aggregated data ingestion estimates from all Tier 1 applications.
+Utilize Kubernetes Horizontal Pod Autoscalers (HPAs) based on CPU, memory, and custom metrics (e.g., queue lengths for Loki/Mimir distributors).
+Use appropriate instance types for AKS nodes (e.g., memory-optimized for Ingesters, CPU-optimized for Queriers).
+Loki:
+
+Ingesters: Memory is key. Sized based on active streams and configured chunk size. Consider max_global_streams_per_user.
+Distributors: CPU and network. Scale based on incoming log rate.
+Queriers & Query Frontend: CPU and memory. Scale based on query load and complexity.
+Storage (Azure Blob): Estimate based on daily log volume * retention period * compression ratio.
+Mimir:
+
+Ingesters: Memory is critical, especially with high cardinality. Sized based on active series, samples per second, and configured max_global_series_per_user.
+Distributors: CPU and network. Scale based on incoming sample rate.
+Queriers & Query Frontend: CPU and memory. Scale based on query load, range, and complexity.
+Store-Gateways: CPU, memory, and network I/O. Scale based on query load on historical data.
+Compactors: CPU and I/O intensive.
+Storage (Azure Blob): Estimate based on samples per day * retention period * bytes per sample * compression.
+Tempo:
+
+Ingesters: Memory and CPU. Scale based on span ingestion rate.
+Distributors: CPU and network.
+Queriers & Query Frontend: CPU and memory. Scale based on trace lookup volume.
+Compactors: CPU and I/O.
+Storage (Azure Blob): Estimate based on daily trace volume * retention period * compression.
+Grafana:
+
+CPU and memory. Scale based on concurrent users, number of dashboards, and query complexity.
+Alloy Agents (Edge):
+
+Resource footprint is generally low but depends on the number of pipelines, targets, and complexity of processing. Monitor closely.
+3.3. AKS Cluster Sizing:
+
+Node Pools: Create dedicated node pools for:
+LGTM stateful components (Ingesters, Compactors, Store-Gateways) – potentially with high memory/IOPS optimized VMs.
+LGTM stateless components (Distributors, Queriers, Grafana) – general-purpose VMs.
+(Optional) Central Alloy Agent processing nodes.
+Overall Cluster Capacity: Sum of resources required by all LGTM components + Kubernetes overhead + buffer for scaling and updates.
+Network Configuration: Ensure sufficient network bandwidth and low latency between application clusters and the LGTM cluster, and between LGTM components and Azure Storage/Redis.
+3.4. Iterative Refinement:
+
+Start Small, Grow: Begin with a conservative estimate and scale up as more applications are onboarded and actual load is observed.
+Performance Testing: Crucial for validating capacity assumptions before going live with all Tier 1 apps. Simulate peak loads.
+Continuous Monitoring: Monitor resource utilization, queue lengths, error rates, and query latencies of the LGTM stack itself to identify bottlenecks and adjust capacity.
+4. Testing and Monitoring Strategy for the LGTM Stack
+4.1. Testing Strategy:
+
+Unit Tests (for custom configurations/scripts): Validate Alloy configurations, Grafana dashboard provisioning scripts, etc.
+Integration Tests:
+Verify data flow from a sample application -> Alloy Agent -> LGTM components -> Grafana.
+Test querying capabilities for logs, metrics, and traces.
+Validate alert firing and notification.
+Performance Tests:
+Load Testing: Simulate high ingestion rates for logs, metrics, and traces using tools like loggen, prombench, Grafana k6 with tracing extensions.
+Stress Testing: Push the system beyond expected peak loads to identify breaking points.
+Soak Testing: Run sustained loads for extended periods to check for memory leaks or performance degradation over time.
+Query Performance Testing: Test complex and frequent queries against Loki, Mimir, and Tempo.
+Resilience/Chaos Testing:
+Simulate node failures in AKS.
+Test component restarts and recovery (e.g., kill Ingester pods).
+Verify data persistence and recovery from Azure Storage.
+Test failover of HPA-managed components.
+Upgrade Testing: Test the upgrade process for each LGTM component in a staging environment.
+4.2. Monitoring Strategy (Monitoring the Monitors):
+
+Golden Signals for each LGTM Component:
+Latency: Query latency, ingestion latency.
+Traffic: Ingestion rate (logs/sec, samples/sec, spans/sec), query rate.
+Errors: Ingestion errors, query errors, internal component errors.
+Saturation: CPU utilization, memory utilization, disk I/O, network I/O, queue lengths, cache hit/miss rates.
+Key Metrics to Monitor:
+Loki:
+loki_distributor_lines_received_total, loki_ingester_streams_opened_total, loki_ingester_memory_streams_bytes
+loki_panic_total, loki_request_duration_seconds_bucket (for various operations)
+Ingester queue lengths, distributor queue lengths.
+Mimir:
+cortex_distributor_samples_in_total, cortex_ingester_active_series, cortex_ingester_memory_series
+cortex_panic_total, cortex_request_duration_seconds_bucket
+mimir_ingester_tsdb_head_max_samples_per_query
+Ingester queue lengths, distributor queue lengths, store-gateway cache hit rates.
+Tempo:
+tempo_distributor_spans_received_total, tempo_ingester_traces_stored_total
+tempo_panic_total, tempo_request_duration_seconds_bucket
+Ingester queue lengths.
+Grafana:
+grafana_page_load_time_seconds, grafana_api_request_duration_seconds_bucket
+grafana_datasources_query_duration_seconds
+Active users, dashboard load times.
+Alloy Agents (Edge & Central):
+alloy_component_flow_processed_bytes_total, alloy_component_flow_processed_entries_total
+alloy_exporter_send_failures_total
+CPU and memory usage of Alloy pods.
+AKS Cluster:
+Node CPU/Memory/Disk/Network utilization.
+Pod restart counts, health checks.
+API server latency.
+Azure Storage:
+Latency, throughput, error rates for Blob Storage.
+Azure Cache for Redis:
+CPU, memory, cache hit/miss ratio, network throughput.
+Dashboards: Create dedicated Grafana dashboards for monitoring the health and performance of the LGTM stack.
+Alerting: Set up alerts for:
+Component unavailability or high error rates.
+High resource utilization (CPU, memory, disk).
+High ingestion/query latency.
+Critical queue build-ups.
+Storage capacity issues.
+Failed data exports from Alloy agents.
+5. Grafana Alloy Agent Strategy
+5.1. Architecture:
+
+Edge Alloy Agents:
+Deployed as a DaemonSet on each application AKS cluster (and potentially on VMs for non-containerized apps).
+Responsibilities:
+Discovery: Auto-discover application pods, services, and log files based on Kubernetes labels and annotations.
+Collection: Scrape Prometheus metrics, collect logs from container stdout/stderr and files, receive traces via OTLP.
+Initial Processing & Filtering (at source):
+Labeling: Add essential metadata (e.g., cluster_name, namespace, app_name, pod_name, container_name, tier="tier1"). These labels are crucial for querying and multi-tenancy in Loki/Mimir.
+Metric Relabeling/Filtering: Drop unnecessary metrics or labels to reduce cardinality (e.g., pod_ip, instance-specific high-cardinality labels if not needed centrally). Use relabel_configs and metric_relabel_configs.
+Log Filtering: Drop debug logs in production environments unless explicitly enabled. Filter out sensitive information (PII scrubbing if possible, though complex).
+Trace Sampling: Implement head-based or tail-based sampling strategies if full trace collection is too expensive or noisy. (Tail-based sampling might be better handled by a central Alloy or dedicated sampling processor if Tempo doesn't have robust support directly).
+Exporting: Securely forward processed data to the centralized LGTM stack components (Loki, Mimir, Tempo).
+Central Alloy Agent (Optional but Recommended for Advanced Scenarios):
+Deployed within the LGTM AKS cluster.
+Responsibilities:
+Aggregation (if needed): Collect data from multiple edge Alloy agents if direct routing is not preferred or if further centralized processing is required.
+Advanced Processing & Enrichment:
+Perform more complex relabeling or metric generation that is common across many sources.
+Enrich data with information from external systems (e.g., CMDB).
+Centralized PII scrubbing or data masking (if edge scrubbing is insufficient).
+Conditional Routing: Route data to different backends or apply different processing pipelines based on labels or content (e.g., route audit logs to a separate security system).
+Label Validation (as per user example): While edge agents should add necessary labels, a central agent could act as a gatekeeper to ensure data conforms to expected schemas or has mandatory labels before ingestion into Mimir/Loki. However, this adds a hop and potential bottleneck. It's often better to enforce this at the edge and monitor for non-compliance.
+Metric Generation from Logs (e.g., log-based metrics for Loki): Alloy can parse logs and generate metrics.
+Decision on Central Agent:
+Start without it if: Edge agents can handle all necessary processing and filtering, and direct export to LGTM components is feasible and manageable.
+Consider it if: Complex cross-application processing, centralized enrichment, advanced routing, or a strict "gatekeeping" function for data quality is required. For Tier 1 apps, ensuring data quality upfront is crucial, so a central agent for validation/enrichment could be valuable but needs careful performance consideration.
+5.2. Templatization of config.alloy:
+
+Goal: Create reusable Alloy configuration snippets/modules to onboard applications quickly and consistently.
+Strategy:
+Base Configuration Template: A core config.alloy that includes:
+Exporter configurations for Loki, Mimir, Tempo pointing to the central LGTM stack endpoints (using Kubernetes service discovery or configurable URLs).
+Default scrape job configurations (e.g., scraping Kubernetes pods, services).
+Default log collection configurations (e.g., collecting stdout/stderr from all containers in a namespace).
+Basic health and metrics endpoints for the Alloy agent itself.
+Application-Specific Overlays/Modules:
+Use Alloy's import functionality or a configuration management tool (like Helm, Kustomize, Jsonnet) to layer application-specific configurations on top of the base template.
+Parameters for Customization:
+Application name, namespace.
+Specific metrics endpoints, scrape intervals.
+Log file paths (if not stdout/stderr).
+Custom labels to be added.
+Filtering rules for logs/metrics/traces (e.g., drop specific log levels, metric names, span attributes).
+Enable/disable specific collectors (logs, metrics, traces) per application.
+Example Structure (Conceptual using Alloy Flow):
+Code snippet
+
+// base_config.alloy (simplified)
+logging {
+  level  = "info"
+  format = "logfmt"
+}
+
+// Exporters (configured via variables/secrets)
+otelcol.exporter.loki "central_loki" {
+  client {
+    url = env("LOKI_URL")
+    // ... other settings (auth, tls)
+  }
+}
+// ... similar for Mimir (prometheus.remote_write) and Tempo (otelcol.exporter.otlp)
+
+// ---- To be imported by app-specific configs ----
+// modules/kubernetes_logs.alloy
+// argument "namespace" {}
+// argument "app_label_selector" {}
+// loki.source.kubernetes "app_logs" {
+//   namespaces = [argument.namespace.value]
+//   // ... selectors, relabeling using app_label_selector
+//   forward_to = [otelcol.exporter.loki.central_loki.input]
+// }
+
+// modules/kubernetes_metrics.alloy
+// argument "namespace" {}
+// argument "app_label_selector" {}
+// discovery.kubernetes "app_pods" {
+//   selectors = [
+//     { role = "pod", label = argument.app_label_selector.value },
+//   ]
+//   namespaces = [argument.namespace.value]
+// }
+// prometheus.scrape "app_metrics" {
+//   targets    = discovery.kubernetes.app_pods.targets
+//   forward_to = [prometheus.remote_write.central_mimir.receiver]
+//   // ... relabeling
+// }
+Code snippet
+
+// app_X_config.alloy
+import.module "k8s_logs" {
+  path = "modules/kubernetes_logs.alloy"
+  arguments = {
+    namespace = "app-x-ns"
+    app_label_selector = "app=my-app-x"
+  }
+}
+import.module "k8s_metrics" {
+  path = "modules/kubernetes_metrics.alloy"
+  arguments = {
+    namespace = "app-x-ns"
+    app_label_selector = "app=my-app-x"
+  }
+  // Add specific metric filtering for app-x
+  // prometheus.scrape.app_metrics.job_name should have metric_relabel_configs
+}
+// Tracing pipeline for app-x
+otelcol.receiver.otlp "app_x_traces" {
+  grpc {}
+  http {}
+}
+otelcol.processor.batch "app_x_batch" {
+  output {
+    metrics = [] // or forward to a metrics pipeline if needed
+    logs    = []
+    traces  = [otelcol.exporter.otlp.central_tempo.input]
+  }
+}
+otelcol.exporter.otlp "central_tempo" {
+  // ... configuration ...
+}
+Configuration Management:
+Store base templates and application-specific configurations in a Git repository.
+Use Helm charts with values files for deploying Alloy agents with their specific configurations.
+Alternatively, use Kustomize overlays.
+Consider tools like Grafana Agent Operator (if mature enough for Alloy) or custom operators for managing Alloy configurations CRDs.
+5.3. Filtering Strategies at Source (Edge Alloy Agent):
+
+High Cardinality Metrics:
+Identify: Use Mimir's cardinality analysis tools or Grafana dashboards (e.g., sum(count by (__name__) ({__name__=~".+"}))) to find problematic metrics.
+Actions in Alloy prometheus.scrape or otelcol.processor.attributes / otelcol.processor.filter:
+metric_relabel_configs:
+action: drop: Remove metrics matching a pattern.
+action: labeldrop: Remove specific labels (e.g., instance_ip, pod_hash if not strictly needed).
+action: replace: Aggregate label values (e.g., replace specific error codes with a generic 'error' category).
+otelcol.processor.attributes (for OTLP metrics): Modify or remove attributes.
+otelcol.processor.filter (for OTLP metrics): Drop metrics based on attributes.
+Example (Prometheus relabeling):
+Code snippet
+
+prometheus.scrape "app_metrics" {
+  // ...
+  metric_relabel_configs = [
+    // Drop metrics with high cardinality 'user_id' label
+    { source_labels = ["__name__", "user_id"], regex = "some_metric_name;.+", action = "drop" },
+    // Drop the 'instance_ip' label from all metrics
+    { action = "labeldrop", regex = "instance_ip" },
+  ]
+}
+Debug Logs:
+Application Responsibility: Applications should ideally control their log levels via configuration.
+Alloy Filtering (as a safety net or for inflexible apps) using loki.process stage or otelcol.processor.filter:
+Loki processing stage (loki.process):
+Code snippet
+
+loki.source.kubernetes "all_logs" { /* ... */ }
+loki.process "filter_debug" {
+  forward_to = [otelcol.exporter.loki.central_loki.input]
+  stage.match {
+    selector = "{level=\"debug\"}" // Assuming 'level' label exists
+    action   = "drop"
+    // For production, you might want to drop unless a specific 'debug_enabled' label is present
+  }
+}
+// Or using regex on the log line itself if 'level' is not a label
+// stage.match {
+//   selector = "{namespace=\"prod\"}"
+//   stage.regex { expression = "^.*DEBUG.*$" } // Example, refine regex
+//   action = "drop"
+// }
+OTLP Logs (otelcol.processor.filter):
+Code snippet
+
+otelcol.processor.filter "log_filter" {
+  error_mode = "send" // send to next if filter fails, or 'remove'
+  logs {
+    log_record = [
+      // Drop if attribute 'log.severity' is DEBUG (numeric value might vary)
+      'attributes["log.severity"] == "DEBUG"', // Or use numeric severity
+    ]
+    action = "exclude" // or "include"
+  }
+  output {
+    logs = [/* next component */]
+  }
+}
+Unnecessary Traces:
+Application Instrumentation: Best controlled at the instrumentation level (e.g., OpenTelemetry SDK sampling configurations).
+Edge Alloy Agent Sampling (otelcol.processor.probabilistic_sampler or otelcol.processor.spanmetrics + filtering based on metrics):
+otelcol.processor.probabilistic_sampler: Head-based sampling.
+Code snippet
+
+otelcol.processor.probabilistic_sampler "trace_sampler" {
+  sampling_percentage = 10.0 // Sample 10% of traces
+  hash_seed           = 22
+  output {
+    traces = [/* next component e.g. batch processor */]
+  }
+}
+otelcol.processor.spanmetrics can generate metrics from spans (e.g., count of spans per operation). These metrics could then be used to dynamically adjust sampling or to identify noisy operations that need more aggressive sampling or filtering.
+otelcol.processor.filter (for OTLP traces): Filter traces based on span attributes (e.g., drop health check traces).
+Code snippet
+
+otelcol.processor.filter "trace_filter_healthchecks" {
+  traces {
+    span = [
+      // Drop if span name contains '/health'
+      'name matches ".*\/health.*"'
+    ]
+    action = "exclude"
+  }
+  output {
+    traces = [/* next component */]
+  }
+}
+Tempo Configuration: Tempo itself can have some sampling capabilities or be integrated with external sampling processors, but filtering at the source reduces load on Tempo.
+6. Onboarding Applications for Monitoring
+This section outlines the documentation and process for application teams.
+
+6.1. Prerequisites for Application Teams:
+
+Application deployed on AKS.
+Understanding of application's key performance indicators (KPIs), critical log messages, and important trace points.
+(If not using auto-discovery) Knowledge of Prometheus metrics endpoint(s), log file locations (if not stdout/stderr).
+For tracing: Application instrumented with OpenTelemetry (or Jaeger/Zipkin compatible libraries) and configured to export traces to the Alloy Agent's OTLP receiver endpoint (e.g., alloy-agent-otelcol.alloy-namespace.svc.cluster.local:4317).
+6.2. Onboarding Process:
+
+Request Observability:
+Application team submits a request (e.g., via a Jira ticket, service catalog item).
+Provide application details: name, namespace, criticality, expected data volumes (rough estimate), key contacts.
+Consultation & Configuration Planning (SRE Team + App Team):
+Discuss specific monitoring requirements:
+Custom metrics to be scraped.
+Specific log formats, parsing requirements (if any beyond standard JSON/logfmt).
+Critical transaction paths for tracing.
+Alerting requirements (what to alert on, thresholds, notification channels).
+Identify potential high cardinality metrics, noisy logs, or verbose traces to filter.
+Alloy Agent Configuration:
+SRE team (or app team with SRE guidance) prepares the Alloy Agent configuration:
+Select the appropriate base template.
+Create/update application-specific overlay/module (e.g., Helm values file).
+Define discovery rules (if needed).
+Specify relabel_configs, metric_relabel_configs, log processing stages, trace sampling/filtering rules.
+Add necessary labels for consistent tagging (e.g., team, product_area).
+Deployment of Alloy Configuration:
+Deploy/update the Alloy Agent configuration to the application's AKS cluster (e.g., via Helm upgrade, GitOps pipeline).
+If a DaemonSet is used, ensure it's scheduled on nodes where the application runs.
+Verification:
+Data Flow:
+Check Alloy Agent logs for successful collection and export.
+Verify logs appear in Grafana/Loki.
+Verify metrics appear in Grafana/Mimir (use Metrics Explorer).
+Verify traces appear in Grafana/Tempo.
+Labeling: Ensure all required labels are present and correct.
+Filtering: Confirm that unwanted data is being dropped.
+Dashboarding & Alerting Setup:
+Application team (with SRE support) creates application-specific dashboards in Grafana.
+SRE team (or app team) configures alerts in Grafana/Mimir Alertmanager based on agreed-upon conditions.
+Documentation & Training:
+Provide application team with links to their dashboards, relevant query examples.
+Brief training on using Grafana for their application's data.
+Document the specific Alloy configuration applied for their application.
+Iterate & Refine:
+Continuously monitor application observability data and Alloy Agent performance.
+Adjust configurations as needed based on application changes or new monitoring requirements.
+6.3. Self-Service (Future Goal):
+
+Develop a library of well-documented Alloy configuration modules.
+Provide clear guidelines and examples for common use cases.
+Potentially create a UI or CLI tool for generating basic Alloy configurations.
+GitOps flow where app teams can propose Alloy configuration changes via Pull Requests (with SRE review).
+7. Security Considerations
+Network Policies:
+Restrict traffic to LGTM components (Loki, Mimir, Tempo, Grafana) only from authorized sources (Alloy Agents, user access points).
+Ensure Alloy Agents can only reach the necessary LGTM endpoints.
+Authentication & Authorization:
+Grafana: Integrate with an identity provider (e.g., Azure AD) for user authentication. Implement role-based access control (RBAC) within Grafana.
+Loki/Mimir/Tempo:
+Enable multi-tenancy using X-Scope-OrgID header. Alloy Agent can be configured to send this.
+Protect public-facing API endpoints with authentication (e.g., OAuth2 Proxy, API Gateway authentication).
+Consider mTLS between components if traversing untrusted networks (though within an AKS cluster, network policies might suffice).
+Data Encryption:
+In Transit: Use TLS for all communication (Alloy to LGTM, inter-component, user to Grafana). Use Cert-Manager for automated certificate management.
+At Rest: Azure Blob Storage provides server-side encryption by default. Evaluate if client-side encryption is needed for extreme security requirements.
+Secrets Management:
+Store sensitive configurations (API keys, passwords, connection strings for storage/cache) in Azure Key Vault and mount them securely into pods (e.g., using Azure Key Vault Provider for Secrets Store CSI Driver).
+Least Privilege:
+Alloy Agents should have the minimum necessary permissions on the AKS cluster (e.g., to read pod/service metadata, access logs).
+LGTM components should run with restricted service accounts.
+Regular Security Audits & Updates: Keep all LGTM components, AKS, and underlying dependencies patched and updated.
+8. Epics and Associated Issues
+Epic 1: LGTM Stack Foundation on AKS
+
+Goal: Deploy a stable, scalable, and secure Grafana, Loki, Mimir, and Tempo stack on a dedicated AKS cluster.
+Issues:
+LGTM-AKS-DESIGN: Finalize AKS cluster design (node pools, sizing, networking) for LGTM.
+LGTM-AKS-PROVISION: Provision dedicated AKS cluster for the LGTM stack.
+LGTM-STORAGE-SETUP: Configure Azure Blob Storage for Loki, Mimir, and Tempo backends.
+LGTM-CACHE-SETUP: (Optional) Configure Azure Cache for Redis for LGTM components.
+LGTM-LOKI-DEPLOY: Deploy Loki (Distributor, Ingester, Querier, Query Frontend) on AKS.
+LGTM-MIMIR-DEPLOY: Deploy Mimir (Distributor, Ingester, Querier, Query Frontend, Store-Gateway, Compactor, Ruler, Alertmanager) on AKS.
+LGTM-TEMPO-DEPLOY: Deploy Tempo (Distributor, Ingester, Querier, Query Frontend, Compactor) on AKS.
+LGTM-GRAFANA-DEPLOY: Deploy Grafana on AKS and configure data sources for Loki, Mimir, Tempo.
+LGTM-INGRESS-SETUP: Configure Ingress controllers and DNS for Grafana, Loki, Mimir, Tempo endpoints.
+LGTM-SECURITY-TLS: Implement TLS for all LGTM component communication and external endpoints using Cert-Manager.
+LGTM-SECURITY-AUTHN_AUTHZ: Configure authentication (e.g., Azure AD for Grafana) and basic authorization for LGTM components.
+LGTM-HA-CONFIG: Configure High Availability (replicas, pod disruption budgets, anti-affinity) for all LGTM components.
+LGTM-HPA-CONFIG: Implement Horizontal Pod Autoscalers for relevant LGTM components.
+Epic 2: LGTM Stack Monitoring & Management
+
+Goal: Implement comprehensive monitoring, alerting, and lifecycle management for the LGTM stack itself.
+Issues:
+LGTM-MONITOR-METRICS: Define and collect key performance metrics for each LGTM component.
+LGTM-MONITOR-DASHBOARDS: Create Grafana dashboards for LGTM stack health and performance.
+LGTM-MONITOR-ALERTS: Set up critical alerts for LGTM stack issues (availability, performance, capacity).
+LGTM-LOGGING: Ensure LGTM component logs are captured and analyzable (potentially within Loki itself - "dogfooding").
+LGTM-BACKUP-RESTORE: Define and test backup and restore procedures for component configurations and (if necessary) Grafana database. (Note: Loki/Mimir/Tempo data is in Blob Storage, so focus is on its resilience).
+LGTM-UPGRADE-STRATEGY: Develop and document an upgrade strategy for LGTM components.
+LGTM-COST-OPTIMIZATION-PLAN: Initial plan for monitoring and optimizing LGTM stack costs.
+Epic 3: Grafana Alloy Agent Implementation & Templatization
+
+Goal: Establish a robust and flexible Grafana Alloy agent setup for collecting telemetry from applications, including templatized configurations for easy onboarding.
+Issues:
+ALLOY-STRATEGY-DEFINE: Finalize Alloy agent architecture (edge vs. edge + central).
+ALLOY-BASE-CONFIG: Develop base config.alloy template for edge agents (logs, metrics, traces exporters).
+ALLOY-K8S-DISCOVERY: Implement Kubernetes service/pod discovery configurations in the base template.
+ALLOY-LOG-COLLECTION-MODULE: Create a reusable Alloy module/snippet for Kubernetes log collection.
+ALLOY-METRIC-COLLECTION-MODULE: Create a reusable Alloy module/snippet for Prometheus metric scraping.
+ALLOY-TRACE-COLLECTION-MODULE: Create a reusable Alloy module/snippet for OTLP trace collection.
+ALLOY-FILTERING-GUIDELINES: Develop guidelines and example configurations for filtering high cardinality metrics, debug logs, and unnecessary traces.
+ALLOY-LABELING-STANDARDS: Define standard labels to be applied by Alloy agents (e.g., cluster, namespace, app, tier).
+ALLOY-DEPLOYMENT-STRATEGY: Define deployment strategy for Alloy agents (DaemonSet, Helm charts).
+ALLOY-CENTRAL-AGENT-SETUP: (If chosen) Deploy and configure central Alloy agent instance(s).
+ALLOY-SECURITY: Secure Alloy agent communication (TLS, token for remote_write/OTLP).
+Epic 4: Tier 1 Application Onboarding - Pilot Phase (for 1-2 Applications)
+
+Goal: Successfully onboard pilot Tier 1 applications to the LGTM stack using Grafana Alloy, validating the process and configurations.
+Issues:
+ONBOARD-PILOT-APP-SELECT: Select 1-2 pilot Tier 1 applications for onboarding.
+ONBOARD-PILOT-APP1-CONFIG: Develop and deploy Alloy configuration for Pilot App 1.
+ONBOARD-PILOT-APP1-VALIDATE: Validate data ingestion (logs, metrics, traces) for Pilot App 1 in Grafana.
+ONBOARD-PILOT-APP1-DASHBOARD: Create initial dashboards for Pilot App 1.
+ONBOARD-PILOT-APP1-ALERTS: Setup basic alerts for Pilot App 1.
+ONBOARD-PILOT-APP2-CONFIG: Develop and deploy Alloy configuration for Pilot App 2.
+ONBOARD-PILOT-APP2-VALIDATE: Validate data ingestion for Pilot App 2.
+ONBOARD-PILOT-APP2-DASHBOARD: Create initial dashboards for Pilot App 2.
+ONBOARD-PILOT-APP2-ALERTS: Setup basic alerts for Pilot App 2.
+ONBOARD-PILOT-FEEDBACK: Gather feedback from pilot application teams and SREs.
+Epic 5: Tier 1 Application Onboarding - Full Scale
+
+Goal: Systematically onboard all remaining Tier 1 applications to the LGTM stack.
+Issues: (Repeated for groups of applications or per application as needed)
+ONBOARD-APPX-PLAN: Plan onboarding for Application X (consultation, requirements gathering).
+ONBOARD-APPX-ALLOY-CONFIG: Develop/customize Alloy configuration for Application X.
+ONBOARD-APPX-DEPLOY: Deploy Alloy configuration for Application X.
+ONBOARD-APPX-VALIDATE: Validate data ingestion for Application X.
+ONBOARD-APPX-DASHBOARD: Assist Application X team in creating dashboards.
+ONBOARD-APPX-ALERTS: Configure alerts for Application X.
+ONBOARD-DOCS-USER: Create comprehensive documentation for application teams on how to use Grafana and understand their data.
+ONBOARD-TRAINING-USER: Conduct training sessions for application teams.
+Epic 6: Performance & Scalability Validation
+
+Goal: Ensure the LGTM stack can handle the load from all Tier 1 applications and perform efficiently.
+Issues:
+PERFTEST-PLAN-DEFINE: Define performance testing scenarios, tools, and metrics.
+PERFTEST-ENV-SETUP: Prepare a performance testing environment (or use staging carefully).
+PERFTEST-LOADGEN-LOGS: Develop/configure log generation scripts/tools.
+PERFTEST-LOADGEN-METRICS: Develop/configure metric generation scripts/tools (e.g., prombench).
+PERFTEST-LOADGEN-TRACES: Develop/configure trace generation scripts/tools (e.g., k6 with OTLP).
+PERFTEST-EXECUTE-LOKI: Execute and analyze performance tests for Loki.
+PERFTEST-EXECUTE-MIMIR: Execute and analyze performance tests for Mimir.
+PERFTEST-EXECUTE-TEMPO: Execute and analyze performance tests for Tempo.
+PERFTEST-EXECUTE-ALLOY: Test Alloy agent performance under load.
+PERFTEST-CAPACITY-ADJUST: Adjust LGTM component sizing and configurations based on test results.
+PERFTEST-REPORT: Document performance test findings and capacity limits.
+This detailed plan provides a roadmap for successfully implementing a Grafana LGTM stack on AKS. Continuous iteration, monitoring, and collaboration between SRE and application teams will be key to its long-term success.
+
+
+
+
+
+
+draft detailed requirement for each issue in format.
+
+As a devops engineer , I want to <what you eant to acheive in the issue>
+
+So that <what are you trying to acheiev with this issue>
+
+
+
+acceptance Criteria:
+
+< bullet points in when this issue can be considered as done>
+
+
+
+
+Show thinking
+Okay, here are the detailed requirements for each issue, following the specified format:
+
+Epic 1: LGTM Stack Foundation on AKS
+
+Issue: LGTM-AKS-DESIGN
+
+As a DevOps engineer, I want to finalize the AKS cluster design (node pools, VM sizing, CNI, network policies baseline, scaling strategy) specifically for hosting the LGTM stack components.
+So that the AKS cluster provides a scalable, resilient, secure, and cost-effective foundation for the Grafana, Loki, Mimir, and Tempo services, capable of handling the observability data for all Tier 1 applications.
+Acceptance Criteria:
+AKS cluster design document is created and reviewed by stakeholders.
+Node pool configurations (e.g., system, Loki-stateful, Mimir-stateful, Tempo-stateful, stateless-components) are defined with appropriate VM SKUs, taints, and labels.
+Initial and maximum node counts for each node pool are estimated based on preliminary capacity planning.
+Networking strategy is defined, including CNI choice (e.g., Azure CNI), IP addressing considerations, and baseline Network Policy requirements for inter-component communication.
+Cluster autoscaler configuration strategy is outlined.
+Integration points with Azure services (Azure Blob Storage, Azure Cache for Redis, Azure Key Vault) are identified.
+Cost estimations for the AKS cluster infrastructure are documented.
+Issue: LGTM-AKS-PROVISION
+
+As a DevOps engineer, I want to provision the dedicated AKS cluster according to the finalized design document.
+So that there is a running Kubernetes environment ready for the deployment of LGTM stack components.
+Acceptance Criteria:
+AKS cluster is successfully provisioned in the target Azure subscription and region.
+Defined node pools are created with the specified VM SKUs and counts.
+kubectl access to the new cluster is verified.
+Basic cluster health checks (e.g., node status, core DNS, metrics server) are passing.
+Cluster autoscaler is configured and functional (if applicable at this stage).
+Necessary integrations with Azure Monitor for AKS are enabled.
+Issue: LGTM-STORAGE-SETUP
+
+As a DevOps engineer, I want to configure Azure Blob Storage containers with appropriate access controls, lifecycle policies, and performance tiers.
+So that Loki, Mimir, and Tempo have reliable, scalable, and cost-effective long-term storage for logs, metrics, and traces.
+Acceptance Criteria:
+Separate Azure Blob Storage containers are created for Loki (chunks, index, ruler), Mimir (blocks, ruler, alertmanager), and Tempo (blocks).
+Appropriate storage tiers (e.g., Hot, Cool) and lifecycle management policies (e.g., for data retention and archiving) are configured based on requirements.
+Secure access mechanisms (e.g., Managed Identities or service principals with least privilege) are set up for LGTM components to access these containers.
+Network access to storage accounts is restricted (e.g., using private endpoints or service endpoints from the AKS VNet).
+Storage account connection details/credentials are securely stored and ready for use in LGTM deployments.
+Issue: LGTM-CACHE-SETUP
+
+As a DevOps engineer, I want to (optionally, if decided by design) provision and configure Azure Cache for Redis instances.
+So that Loki, Mimir, and Tempo can leverage caching to improve query performance and reduce load on backend storage.
+Acceptance Criteria:
+Azure Cache for Redis instance(s) are provisioned with appropriate SKU and capacity based on design.
+Network connectivity from the AKS cluster to the Redis instance(s) is established and secured (e.g., private endpoint).
+Connection details for Redis are securely stored and available for LGTM component configurations.
+Basic connectivity test from an AKS pod to Redis is successful.
+Issue: LGTM-LOKI-DEPLOY
+
+As a DevOps engineer, I want to deploy a highly available and scalable Loki cluster (Distributor, Ingester, Querier, Query Frontend, and optional Compactor/Ruler) onto the AKS cluster.
+So that application logs sent by Alloy agents can be ingested, stored, and queried efficiently.
+Acceptance Criteria:
+Loki components (Distributor, Ingester, Querier, Query Frontend) are deployed using Helm charts or Kubernetes manifests.
+Loki is configured to use the designated Azure Blob Storage container for its backend.
+Loki is configured to use Azure Cache for Redis (if provisioned) for relevant caches (e.g., index read/write, chunks).
+All Loki pods are running and healthy.
+Loki exposes necessary service endpoints for ingestion and querying.
+Basic log ingestion and query test via Loki API or Grafana is successful.
+Horizontal Pod Autoscalers (HPAs) are configured for scalable components like Ingesters and Queriers.
+Pod Disruption Budgets (PDBs) are in place for critical Loki components.
+Issue: LGTM-MIMIR-DEPLOY
+
+As a DevOps engineer, I want to deploy a highly available and scalable Mimir cluster (Distributor, Ingester, Querier, Query Frontend, Store-Gateway, Compactor, Ruler, Alertmanager) onto the AKS cluster.
+So that Prometheus metrics sent by Alloy agents can be ingested, stored long-term, and queried efficiently, and alerting can be managed.
+Acceptance Criteria:
+Mimir components are deployed using Helm charts or Kubernetes manifests.
+Mimir is configured to use the designated Azure Blob Storage container for its blocks and ruler storage.
+Mimir is configured to use Azure Cache for Redis (if provisioned) for relevant caches.
+All Mimir pods are running and healthy.
+Mimir exposes necessary service endpoints for remote write (ingestion) and querying.
+Basic metric ingestion (e.g., via remote_write) and query test via Mimir API or Grafana is successful.
+HPAs are configured for scalable components (e.g., Ingesters, Queriers, Distributors).
+PDBs are in place for critical Mimir components.
+Mimir Alertmanager is deployed and configured (initial basic configuration).
+Issue: LGTM-TEMPO-DEPLOY
+
+As a DevOps engineer, I want to deploy a highly available and scalable Tempo cluster (Distributor, Ingester, Querier, Query Frontend, Compactor) onto the AKS cluster.
+So that distributed traces sent by Alloy agents via OTLP can be ingested, stored, and queried efficiently.
+Acceptance Criteria:
+Tempo components are deployed using Helm charts or Kubernetes manifests.
+Tempo is configured to use the designated Azure Blob Storage container for its blocks.
+Tempo is configured to use Azure Cache for Redis (if provisioned) for relevant caches.
+All Tempo pods are running and healthy.
+Tempo exposes necessary service endpoints for OTLP ingestion and querying (e.g., gRPC, HTTP).
+Basic trace ingestion (e.g., via OTLP) and retrieval by TraceID via Tempo API or Grafana is successful.
+HPAs are configured for scalable components (e.g., Ingesters, Distributors).
+PDBs are in place for critical Tempo components.
+Issue: LGTM-GRAFANA-DEPLOY
+
+As a DevOps engineer, I want to deploy a highly available Grafana instance on the AKS cluster and configure it with Loki, Mimir, and Tempo data sources.
+So that users have a centralized UI for visualizing logs, metrics, traces, and creating dashboards and alerts.
+Acceptance Criteria:
+Grafana is deployed using a Helm chart or Kubernetes manifests.
+Grafana is configured with persistent storage for its database (dashboards, users, etc.), potentially using Azure Disk or Azure Files.
+Grafana pods are running and healthy.
+Data sources for Loki, Mimir, and Tempo are configured and successfully tested in Grafana.
+Users can log in to Grafana (initial admin access verified).
+HPAs (if deemed necessary for Grafana itself) and PDBs are configured.
+Issue: LGTM-INGRESS-SETUP
+
+As a DevOps engineer, I want to configure Ingress controllers (e.g., Nginx, Traefik, or AGIC) and DNS records for external access to Grafana, and potentially for the API endpoints of Loki, Mimir, and Tempo if direct external access is required.
+So that users can access Grafana via a user-friendly URL, and Alloy agents/applications can send data to LGTM components securely and reliably.
+Acceptance Criteria:
+An Ingress controller is deployed and configured in the AKS cluster.
+Ingress resources are created for Grafana, exposing it via a HTTPS URL.
+DNS A records are created and point to the Ingress controller's external IP for the Grafana FQDN.
+If required, Ingress resources and DNS are configured for Loki, Mimir, and Tempo API endpoints (e.g., loki.prod-obs.company.com, mimir-write.prod-obs.company.com).
+TLS termination is handled at the Ingress level using certificates managed by Cert-Manager.
+Access to Grafana via the configured FQDN is successful.
+Issue: LGTM-SECURITY-TLS
+
+As a DevOps engineer, I want to implement TLS for all external LGTM component communication and, where appropriate, for internal inter-component communication using Cert-Manager.
+So that all data in transit to and within (where applicable) the LGTM stack is encrypted, enhancing security.
+Acceptance Criteria:
+Cert-Manager is deployed and configured in the AKS cluster (e.g., with Let's Encrypt for public CAs or an internal CA).
+Ingress resources for Grafana (and other exposed LGTM endpoints) are automatically issued and renew TLS certificates.
+Communication between Alloy agents and LGTM ingestion endpoints (Loki, Mimir, Tempo) is over TLS.
+(Optional, if deemed necessary by security policy) mTLS is configured for inter-component communication within the LGTM stack.
+All external endpoints pass TLS validation tests (e.g., SSL Labs).
+Issue: LGTM-SECURITY-AUTHN_AUTHZ
+
+As a DevOps engineer, I want to configure authentication for Grafana (e.g., integrating with Azure AD) and implement basic authorization/multi-tenancy mechanisms for Loki, Mimir, and Tempo.
+So that only authorized users can access Grafana, and data within the LGTM stack can be logically segregated if needed.
+Acceptance Criteria:
+Grafana is integrated with Azure AD (or another chosen IdP) for user authentication.
+Grafana RBAC (Viewer, Editor, Admin roles) is configured, potentially mapping to Azure AD groups.
+Loki, Mimir, and Tempo are configured to support multi-tenancy via the X-Scope-OrgID header (or equivalent mechanism if using Grafana Enterprise Stack).
+(If direct API access to Loki/Mimir/Tempo is exposed) Authentication mechanisms (e.g., OAuth2 Proxy, API keys passed securely) are implemented for these endpoints.
+Default deny Network Policies are in place, with explicit allow rules for required traffic flows.
+Issue: LGTM-HA-CONFIG
+
+As a DevOps engineer, I want to configure High Availability settings (replicas, pod disruption budgets, pod anti-affinity) for all critical LGTM components.
+So that the LGTM stack can tolerate node failures and planned maintenance with minimal service disruption.
+Acceptance Criteria:
+All stateful and stateless components of Loki, Mimir, Tempo, and Grafana are configured with an appropriate number of replicas for HA (e.g., >=2 or 3).
+Pod Disruption Budgets (PDBs) are defined for each component to limit concurrent disruptions during voluntary actions (e.g., node upgrades).
+Pod anti-affinity rules are implemented to spread critical component replicas across different nodes and potentially availability zones.
+HA configuration is tested by simulating node drains or pod deletions, verifying service continuity.
+Issue: LGTM-HPA-CONFIG
+
+As a DevOps engineer, I want to implement Horizontal Pod Autoscalers (HPAs) for relevant LGTM components based on CPU, memory, or custom metrics.
+So that the LGTM stack can automatically scale its components horizontally to handle varying ingestion and query loads efficiently.
+Acceptance Criteria:
+HPAs are configured for scalable components of Loki (e.g., Ingesters, Distributors, Queriers).
+HPAs are configured for scalable components of Mimir (e.g., Ingesters, Distributors, Queriers, Store-Gateways).
+HPAs are configured for scalable components of Tempo (e.g., Ingesters, Distributors, Queriers).
+HPAs for Grafana are considered and implemented if user load warrants it.
+Target metrics (CPU, memory utilization, or custom metrics like queue length) and thresholds for scaling are defined.
+HPA functionality is tested by generating synthetic load and observing scaling events.
+Epic 2: LGTM Stack Monitoring & Management
+
+Issue: LGTM-MONITOR-METRICS
+
+As a DevOps engineer, I want to identify and configure the collection of key performance and health metrics from each LGTM component (Loki, Mimir, Tempo, Grafana) and the underlying AKS infrastructure.
+So that the operational status, performance, and resource utilization of the LGTM stack can be continuously monitored.
+Acceptance Criteria:
+A list of critical metrics (golden signals: latency, traffic, errors, saturation) for each LGTM component is documented.
+Prometheus scrape configurations (potentially managed by Prometheus Operator or Alloy itself) are set up to collect these metrics.
+Metrics from AKS nodes and Kubernetes control plane are being collected.
+Metrics from Azure Blob Storage and Azure Cache for Redis (if used) are being collected.
+Collected metrics are visible and queryable within the Mimir instance (dogfooding).
+Issue: LGTM-MONITOR-DASHBOARDS
+
+As a DevOps engineer, I want to create dedicated Grafana dashboards to visualize the collected health and performance metrics of the LGTM stack.
+So that SREs can easily observe the state of the LGTM components, identify trends, and troubleshoot issues.
+Acceptance Criteria:
+A main overview dashboard for the entire LGTM stack health is created.
+Dedicated dashboards are created for Loki, showing ingestion rates, query performance, error rates, and resource utilization of its components.
+Dedicated dashboards are created for Mimir, showing ingestion rates, active series, query performance, compaction status, and resource utilization.
+Dedicated dashboards are created for Tempo, showing ingestion rates, trace lookup performance, and resource utilization.
+A dashboard for Grafana's own performance is available.
+Dashboards for AKS cluster health (node resources, pod status) are available.
+Dashboards for Azure Blob Storage and Redis (if used) performance are available.
+Dashboards are reviewed and deemed useful by the SRE team.
+Issue: LGTM-MONITOR-ALERTS
+
+As a DevOps engineer, I want to set up critical alerts in Grafana/Mimir Alertmanager based on the collected metrics for the LGTM stack.
+So that SREs are proactively notified of issues such as component unavailability, high error rates, performance degradation, or impending capacity limits.
+Acceptance Criteria:
+Alerting rules are defined for critical conditions (e.g., component down, high error percentage, high query latency, low disk space on persistent volumes, high queue lengths, HPA hitting max replicas).
+Alerts are configured in Mimir Alertmanager (or Grafana alerting).
+Notification channels (e.g., email, Slack, PagerDuty) are configured and tested.
+A runbook or documentation exists for common alerts, outlining initial troubleshooting steps.
+False positive rates are monitored and alerts are tuned post-deployment.
+Issue: LGTM-LOGGING
+
+As a DevOps engineer, I want to ensure that logs from all LGTM components (Loki, Mimir, Tempo, Grafana, Ingress Controller, etc.) are captured, centralized, and analyzable.
+So that troubleshooting and auditing of the LGTM stack itself are possible.
+Acceptance Criteria:
+Logs from all LGTM component pods are collected (ideally into the deployed Loki instance - "dogfooding").
+Logs are appropriately tagged with component name, pod name, namespace, etc.
+SREs can search and analyze LGTM component logs using Grafana/Loki.
+Log retention policies for LGTM component logs are defined and implemented.
+Issue: LGTM-BACKUP-RESTORE
+
+As a DevOps engineer, I want to define and test backup and restore procedures for critical LGTM stack configurations and Grafana's persistent data.
+So that in case of a major failure or data corruption, the LGTM stack's operational state and user-created content (like dashboards) can be recovered.
+Acceptance Criteria:
+Backup strategy for Grafana's database (dashboards, users, configurations) is defined and automated (e.g., using Azure Backup for PVs, or Grafana's internal backup tools if applicable).
+Backup strategy for critical configurations stored in Git (e.g., Helm values, Alloy configs) is implicitly covered by Git version control.
+Restore procedures for Grafana data are documented.
+A test restore of Grafana data to a non-production environment is successfully performed.
+Resiliency of Loki, Mimir, and Tempo data is confirmed to rely on Azure Blob Storage's durability and configured replication.
+Issue: LGTM-UPGRADE-STRATEGY
+
+As a DevOps engineer, I want to develop and document an upgrade strategy for each LGTM component (Loki, Mimir, Tempo, Grafana) and supporting tools like Cert-Manager and Ingress controllers.
+So that the LGTM stack can be kept up-to-date with new features and security patches with minimal downtime and risk.
+Acceptance Criteria:
+An upgrade strategy document is created, outlining procedures for upgrading each major component.
+The strategy includes steps for pre-upgrade checks, canary deployments (if feasible), rollback plans, and post-upgrade validation.
+Consideration for Helm chart versioning and updates is included.
+The process for testing upgrades in a staging environment is defined.
+A sample upgrade (e.g., a minor version bump of one component) is tested in a non-production environment.
+Issue: LGTM-COST-OPTIMIZATION-PLAN
+
+As a DevOps engineer, I want to establish an initial plan for monitoring, analyzing, and optimizing the costs associated with the LGTM stack (AKS, storage, cache, data transfer).
+So that the observability solution remains cost-effective while meeting performance and reliability requirements.
+Acceptance Criteria:
+Key cost drivers for the LGTM stack are identified (e.g., AKS node types, storage volume/transactions, cache size, network egress).
+Tools and methods for tracking LGTM-related costs in Azure are identified (e.g., Azure Cost Management, tagging resources).
+Initial strategies for cost optimization are outlined (e.g., right-sizing instances, optimizing storage tiers/lifecycle policies, data filtering at source).
+A process for periodic cost review and optimization is proposed.
+Metrics for tracking cost efficiency (e.g., cost per GB ingested, cost per active user) are considered.
+Epic 3: Grafana Alloy Agent Implementation & Templatization
+
+Issue: ALLOY-STRATEGY-DEFINE
+
+As a DevOps engineer, I want to finalize the architectural strategy for Grafana Alloy agent deployment (e.g., edge agents only, or edge agents with a central Alloy agent for aggregation/processing).
+So that there is a clear and efficient model for collecting telemetry data from applications and forwarding it to the LGTM stack.
+Acceptance Criteria:
+A document outlining the chosen Alloy agent architecture is created and approved.
+The roles and responsibilities of edge agents (and central agents, if used) are clearly defined.
+Data flow diagrams for logs, metrics, and traces from applications via Alloy to LGTM components are included.
+Rationale for the chosen architecture (considering complexity, performance, and manageability) is provided.
+Issue: ALLOY-BASE-CONFIG
+
+As a DevOps engineer, I want to develop a version-controlled base config.alloy template for edge Alloy agents.
+So that a standardized starting point for Alloy agent configurations is available, simplifying onboarding and ensuring consistency.
+Acceptance Criteria:
+A config.alloy file (or set of base files for Alloy Flow) is created and stored in a Git repository.
+The base configuration includes:
+Exporters for Loki (logs), Mimir (Prometheus remote_write), and Tempo (OTLP traces) pointing to the central LGTM service endpoints.
+Placeholders or mechanisms for secure credential management for exporters.
+Basic self-monitoring configuration for the Alloy agent itself.
+Default logging settings for the agent.
+The configuration is well-commented and structured for modularity.
+Issue: ALLOY-K8S-DISCOVERY
+
+As a DevOps engineer, I want to implement Kubernetes service discovery and pod discovery configurations within the base Alloy template.
+So that Alloy agents can automatically discover and scrape telemetry data from application pods and services based on annotations or labels, reducing manual configuration.
+Acceptance Criteria:
+Base Alloy configuration includes discovery.kubernetes components for discovering pods and services.
+Examples of how to use these discoveries for prometheus.scrape (metrics) and loki.source.kubernetes (logs) targets are provided or included.
+The discovery mechanisms are configurable via variables/arguments (e.g., namespace selectors, label selectors).
+RBAC permissions required for Alloy agent to perform discovery are documented.
+Issue: ALLOY-LOG-COLLECTION-MODULE
+
+As a DevOps engineer, I want to create a reusable Alloy module (or templatized snippet) for collecting Kubernetes container logs.
+So that application teams can easily enable log collection for their applications with minimal custom configuration.
+Acceptance Criteria:
+An Alloy module/snippet for loki.source.kubernetes (or equivalent OTel collector log receivers) is developed.
+The module allows customization of:
+Namespace and label selectors for targeting specific applications/pods.
+Default relabeling rules to add essential Kubernetes metadata (pod, namespace, container, node).
+Forwarding to the pre-configured Loki exporter.
+The module is documented with usage examples.
+Issue: ALLOY-METRIC-COLLECTION-MODULE
+
+As a DevOps engineer, I want to create a reusable Alloy module (or templatized snippet) for scraping Prometheus metrics from Kubernetes pods/services.
+So that application teams can easily configure metrics collection for their applications that expose Prometheus endpoints.
+Acceptance Criteria:
+An Alloy module/snippet for prometheus.scrape is developed.
+The module utilizes discovery.kubernetes targets.
+The module allows customization of:
+Scrape job name, scrape interval, scrape timeout.
+Metrics path and port.
+Basic relabel_configs and metric_relabel_configs for common labeling and filtering needs.
+Forwarding to the pre-configured Mimir remote_write exporter.
+The module is documented with usage examples.
+Issue: ALLOY-TRACE-COLLECTION-MODULE
+
+As a DevOps engineer, I want to create a reusable Alloy module (or templatized snippet) for receiving OTLP traces.
+So that application teams can easily configure their OpenTelemetry-instrumented applications to send traces to the Alloy agent.
+Acceptance Criteria:
+An Alloy module/snippet for otelcol.receiver.otlp (gRPC and HTTP) is developed.
+The module includes basic processors like otelcol.processor.batch.
+The module is configured to forward traces to the pre-configured Tempo OTLP exporter.
+Configuration for endpoint exposure within the Alloy agent is clear.
+The module is documented with guidance for application teams on how to configure their OTel SDKs.
+Issue: ALLOY-FILTERING-GUIDELINES
+
+As a DevOps engineer, I want to develop and document guidelines and example configurations for filtering high cardinality metrics, debug logs, and unnecessary traces at the source using Alloy.
+So that application teams can optimize their telemetry data, reducing noise and cost, while SREs have clear patterns to implement advanced filtering.
+Acceptance Criteria:
+A document outlining strategies and Alloy configuration examples for filtering is created.
+Examples cover:
+Dropping specific metrics or labels using metric_relabel_configs.
+Filtering logs based on log level or content using loki.process stages or otelcol.processor.filter.
+Implementing head-based trace sampling using otelcol.processor.probabilistic_sampler.
+Filtering traces based on span attributes using otelcol.processor.filter.
+Guidance on identifying high cardinality metrics and noisy traces is included.
+Best practices for applying filters without losing critical observability data are emphasized.
+Issue: ALLOY-LABELING-STANDARDS
+
+As a DevOps engineer, I want to define and document standard labels (e.g., cluster, namespace, app, service, tier, team) that must be applied by Alloy agents to all telemetry data.
+So that logs, metrics, and traces are consistently tagged, enabling effective filtering, aggregation, correlation, and multi-tenancy across the LGTM stack.
+Acceptance Criteria:
+A document listing mandatory and recommended labels for logs, metrics, and traces is created.
+The source of each label (e.g., auto-discovered by Alloy, manually added via config) is specified.
+Examples of how to implement these standard labels in Alloy configurations (e.g., via relabel_configs, otelcol.processor.attributes) are provided.
+The importance of consistent labeling for dashboarding, alerting, and data exploration is highlighted.
+Issue: ALLOY-DEPLOYMENT-STRATEGY
+
+As a DevOps engineer, I want to define the deployment strategy for Grafana Alloy agents on application AKS clusters (e.g., as a DaemonSet using Helm charts).
+So that Alloy agents can be deployed, configured, and managed consistently and efficiently across multiple application clusters.
+Acceptance Criteria:
+A deployment strategy document is created.
+The chosen deployment method (e.g., DaemonSet) is justified.
+A Helm chart for deploying the Alloy agent is created or chosen (e.g., the official Grafana chart for Alloy).
+The Helm chart allows for customization of:
+Alloy configuration (config.alloy content or ConfigMap reference).
+Resource requests and limits.
+RBAC permissions.
+Node selectors or affinity rules.
+The process for upgrading Alloy agents is outlined.
+Issue: ALLOY-CENTRAL-AGENT-SETUP
+
+As a DevOps engineer, I want to (if the chosen strategy includes it) deploy and configure central Grafana Alloy agent instance(s) within the LGTM AKS cluster.
+So that advanced centralized processing, aggregation, or routing of telemetry data can be performed before ingestion into LGTM backends.
+Acceptance Criteria:
+Central Alloy agent instances are deployed (e.g., as a Deployment) in the LGTM AKS cluster.
+Configuration for the central agent, defining its processing pipelines (e.g., for label validation, enrichment, conditional routing), is implemented.
+Edge Alloy agents are configured to send data to the central Alloy agent (if this is the flow).
+Central Alloy agent is monitored for performance and errors.
+HPAs and PDBs are configured for the central Alloy agent deployment.
+Issue: ALLOY-SECURITY
+
+As a DevOps engineer, I want to ensure that Grafana Alloy agent communication with the LGTM stack is secure and that agents operate with least privilege.
+So that telemetry data is protected in transit and agents cannot pose an undue security risk to the clusters they run on or the LGTM stack.
+Acceptance Criteria:
+Communication from Alloy agents to Loki, Mimir (remote_write), and Tempo (OTLP) endpoints is encrypted using TLS.
+Authentication mechanisms (e.g., bearer tokens, basic auth with secrets management) are used for exporters if required by LGTM components.
+Kubernetes ServiceAccounts for Alloy agents are configured with the minimum necessary RBAC permissions (e.g., to read pod/service metadata, access logs via API if needed).
+Secrets (like API keys or tokens for exporters) are managed securely (e.g., via Kubernetes secrets mounted into Alloy pods, potentially sourced from Azure Key Vault).
+Epic 4: Tier 1 Application Onboarding - Pilot Phase (for 1-2 Applications)
+
+(These issues will be largely similar for each pilot application, differing in the specific app details)
+
+Issue: ONBOARD-PILOT-APP-SELECT
+
+As a DevOps engineer, I want to work with application owners and SRE leadership to select 1-2 suitable Tier 1 applications for the pilot onboarding phase.
+So that the end-to-end onboarding process, Alloy configurations, and LGTM stack functionality can be validated with real applications before a wider rollout.
+Acceptance Criteria:
+Criteria for selecting pilot applications are defined (e.g., representative technology stack, cooperative team, moderate complexity).
+Two Tier 1 applications are identified and agreed upon for the pilot.
+Key contacts and stakeholders from the pilot application teams are engaged.
+Issue: ONBOARD-PILOT-APP1-CONFIG
+
+As a DevOps engineer, I want to develop and deploy the specific Grafana Alloy configuration for Pilot Application 1.
+So that Pilot Application 1 can send its logs, metrics, and traces to the central LGTM stack.
+Acceptance Criteria:
+Specific monitoring requirements for Pilot App 1 are gathered from the application team.
+An Alloy configuration file (or Helm values override) is created for Pilot App 1, leveraging the base templates and modules.
+Configuration includes specific discovery rules, filtering for noise reduction (e.g., debug logs, high cardinality metrics if known), and correct labeling.
+The Alloy configuration is deployed to the AKS cluster where Pilot App 1 runs.
+Alloy agent pods for Pilot App 1 are running and healthy, showing successful connection to LGTM backends in their logs.
+Issue: ONBOARD-PILOT-APP1-VALIDATE
+
+As a DevOps engineer, I want to validate that logs, metrics, and traces from Pilot Application 1 are successfully ingested and queryable in the LGTM stack.
+So that the correctness of the Alloy configuration and the data pipeline for Pilot App 1 is confirmed.
+Acceptance Criteria:
+Logs from Pilot App 1 are visible in Grafana/Loki with correct timestamps and labels.
+Key metrics from Pilot App 1 are visible in Grafana/Mimir (via Metrics Explorer or basic queries) with correct labels.
+Traces from critical transactions in Pilot App 1 are visible in Grafana/Tempo and can be correlated.
+Data filtering (if configured) is working as expected.
+No significant errors are observed in Alloy agent logs or LGTM component logs related to Pilot App 1 data.
+Issue: ONBOARD-PILOT-APP1-DASHBOARD
+
+As a DevOps engineer, I want to collaborate with the Pilot Application 1 team to create initial Grafana dashboards displaying their key logs, metrics, and trace information.
+So that the application team can immediately start deriving value from the observability data and provide feedback on its usefulness.
+Acceptance Criteria:
+At least one Grafana dashboard is created for Pilot App 1, visualizing its critical performance indicators (e.g., request rate, error rate, latency from metrics; error logs; trace overview).
+The dashboard uses the standardized labels for filtering and aggregation.
+The Pilot App 1 team has access to and can use the dashboard.
+Initial feedback on dashboard usability and data representation is collected.
+Issue: ONBOARD-PILOT-APP1-ALERTS
+
+As a DevOps engineer, I want to work with the Pilot Application 1 team to set up a few basic but critical alerts in Grafana/Mimir Alertmanager for their application.
+So that proactive monitoring for key failure conditions of Pilot App 1 is established.
+Acceptance Criteria:
+1-3 critical alert conditions for Pilot App 1 are identified (e.g., high error rate, critical service down, high latency).
+Alerting rules are configured in Mimir Alertmanager or Grafana alerting.
+Notifications for these alerts are routed to the Pilot App 1 team (or a test channel initially).
+Alerts are tested to ensure they fire correctly and notifications are received.
+(Repeat ONBOARD-PILOT-APP2-CONFIG, -VALIDATE, -DASHBOARD, -ALERTS for the second pilot application)
+
+Issue: ONBOARD-PILOT-FEEDBACK
+
+As a DevOps engineer, I want to gather detailed feedback from the pilot application teams and internal SREs on the onboarding process, tooling, and data utility.
+So that the onboarding process, Alloy templates, and LGTM configurations can be refined and improved before full-scale rollout.
+Acceptance Criteria:
+Feedback sessions are conducted with both pilot application teams.
+Feedback is collected on:
+Ease of understanding and implementing Alloy configurations.
+Clarity of onboarding documentation/guidance.
+Performance and resource usage of Alloy agents.
+Usefulness of data in Grafana (logs, metrics, traces).
+Effectiveness of dashboards and alerts.
+A summary of feedback, including pain points and suggestions for improvement, is documented.
+An action plan to address key feedback items is created.
+Epic 5: Tier 1 Application Onboarding - Full Scale
+
+(These issues represent a repeatable process for each subsequent Tier 1 application or group of applications)
+
+Issue: ONBOARD-APPX-PLAN
+
+As a DevOps engineer, I want to conduct a planning and consultation session with the team for Application X to understand their specific monitoring requirements.
+So that the Alloy configuration and observability setup can be tailored to provide maximum value for Application X.
+Acceptance Criteria:
+A meeting is held with the Application X team.
+Key metrics, log sources, critical transactions for tracing, and desired alert conditions are documented.
+Any known sources of high cardinality data or noise are identified.
+The application's architecture and deployment details (namespaces, labels) are understood.
+Issue: ONBOARD-APPX-ALLOY-CONFIG
+
+As a DevOps engineer, I want to develop and deploy the specific Grafana Alloy configuration for Application X, leveraging established templates and addressing specific needs identified in the planning phase.
+So that Application X can effectively send its logs, metrics, and traces to the central LGTM stack.
+Acceptance Criteria:
+An Alloy configuration (e.g., Helm values override) for Application X is created, tested (e.g., locally if possible), and committed to version control.
+The configuration implements necessary discovery, filtering, and labeling for Application X.
+The Alloy configuration is deployed to the AKS cluster where Application X runs.
+Alloy agent pods for Application X are confirmed to be running, healthy, and successfully connecting to LGTM backends.
+Issue: ONBOARD-APPX-VALIDATE
+
+As a DevOps engineer, I want to thoroughly validate that logs, metrics, and traces from Application X are correctly ingested, labeled, and queryable in Grafana.
+So that data integrity and the effectiveness of the observability pipeline for Application X are ensured.
+Acceptance Criteria:
+Logs from Application X are visible and searchable in Grafana/Loki with correct labels and no unexpected errors.
+Key metrics from Application X are correctly reported in Grafana/Mimir with appropriate labels.
+Traces for important user flows/transactions in Application X are captured and explorable in Grafana/Tempo.
+Configured filters and sampling rules are functioning as intended.
+The Application X team confirms the data meets their initial expectations.
+Issue: ONBOARD-APPX-DASHBOARD
+
+As a DevOps engineer, I want to assist the Application X team in creating or adapting Grafana dashboards that provide insights into their application's performance and health.
+So that the Application X team can self-serve their monitoring needs and effectively use the observability data.
+Acceptance Criteria:
+The Application X team is provided with guidance, templates, or direct assistance to create their primary dashboards.
+Dashboards cover key metrics, relevant log queries, and trace views.
+Dashboards utilize standard labels for consistency.
+The Application X team is trained on how to modify and create new dashboards.
+Issue: ONBOARD-APPX-ALERTS
+
+As a DevOps engineer, I want to work with the Application X team to define and configure alerts in Grafana/Mimir Alertmanager for their application's critical conditions.
+So that the Application X team and SREs are proactively notified of issues affecting the application.
+Acceptance Criteria:
+Critical alert conditions for Application X are defined with appropriate thresholds.
+Alerting rules are implemented in Mimir Alertmanager or Grafana alerting.
+Notifications are configured to reach the correct Application X team members and/or SRE on-call.
+Alerts are tested to ensure they fire as expected.
+Issue: ONBOARD-DOCS-USER
+
+As a DevOps engineer, I want to create and maintain comprehensive documentation for application teams on how to use the LGTM stack (Grafana, querying, dashboards) and understand their observability data.
+So that application teams can become self-sufficient in leveraging the observability platform for their monitoring and troubleshooting needs.
+Acceptance Criteria:
+User-facing documentation is created and published (e.g., on a wiki, internal portal).
+Documentation covers:
+Accessing Grafana.
+Introduction to Loki (LogQL), Mimir (PromQL), and Tempo query languages/features within Grafana.
+How to find and interpret their application's logs, metrics, and traces.
+Creating and customizing dashboards.
+Understanding configured alerts.
+Best practices for application instrumentation (if providing guidance).
+Process for requesting new Alloy configurations or modifications.
+Documentation is reviewed for clarity and completeness.
+Issue: ONBOARD-TRAINING-USER
+
+As a DevOps engineer, I want to conduct training sessions for application teams on utilizing the Grafana LGTM stack for observability.
+So that application teams are empowered to effectively use the new monitoring tools and practices.
+Acceptance Criteria:
+Training materials (slides, demos, hands-on exercises) are prepared.
+Training sessions are scheduled and delivered to application teams as they are onboarded.
+Training covers key aspects from the user documentation (Grafana usage, querying, dashboarding).
+Q&A sessions are held to address specific team questions.
+Feedback on training sessions is collected for improvement.
+Epic 6: Performance & Scalability Validation
+
+Issue: PERFTEST-PLAN-DEFINE
+
+As a DevOps engineer, I want to define a comprehensive performance testing plan, including scenarios, tools, target metrics, and success criteria for the LGTM stack.
+So that the LGTM stack's ability to handle the expected and peak loads from all Tier 1 applications can be systematically validated.
+Acceptance Criteria:
+A performance test plan document is created.
+The plan details:
+Test objectives (e.g., validate ingestion capacity, query latency under load, HPA effectiveness).
+Scope (which LGTM components, specific scenarios like high log volume, high metrics cardinality, high trace volume).
+Load profiles (e.g., average load, peak load, soak test duration).
+Tools to be used for load generation (e.g., loggen, prombench, k6).
+Key performance indicators (KPIs) to measure (e.g., ingestion latency, query p95/p99 latency, error rates, resource utilization).
+Success criteria and thresholds for these KPIs.
+The plan is reviewed and approved by stakeholders.
+Issue: PERFTEST-ENV-SETUP
+
+As a DevOps engineer, I want to prepare a suitable performance testing environment, which could be a dedicated staging environment mirroring production or, if carefully managed, the production environment during off-peak hours with synthetic load.
+So that performance tests can be executed reliably without impacting production users (if a separate environment is used) or with measurable impact (if production).
+Acceptance Criteria:
+The performance testing environment is identified and prepared.
+If a staging environment, it closely mirrors the production LGTM stack configuration and underlying infrastructure capacity (or a scaled-down version with clear scaling factors).
+Load generation tools are installed and configured in the test environment or on dedicated load generator machines.
+Monitoring of the LGTM stack (using its own dashboards) is in place for the test environment.
+Access and permissions for executing tests and collecting results are set up.
+Issue: PERFTEST-LOADGEN-LOGS
+
+As a DevOps engineer, I want to develop or configure scripts and tools to generate a configurable volume of synthetic log data with varying characteristics (e.g., line length, cardinality of labels).
+So that Loki's ingestion and query performance can be tested under realistic and stress load conditions.
+Acceptance Criteria:
+A log generation tool (e.g., loggen, custom scripts using Fluentd/Alloy, or k6) is selected and configured.
+Scripts can generate logs at specified rates (lines/sec, MB/sec).
+Scripts can simulate different log structures and label cardinalities.
+The generated logs can be directed to the Alloy agents or directly to Loki's distributor endpoint for testing.
+Issue: PERFTEST-LOADGEN-METRICS
+
+As a DevOps engineer, I want to develop or configure scripts and tools to generate a configurable volume of synthetic Prometheus metrics with varying characteristics (e.g., number of active series, label cardinality, scrape frequency).
+So that Mimir's ingestion (remote_write) and query performance can be tested under realistic and stress load conditions, especially concerning high cardinality.
+Acceptance Criteria:
+A metric generation tool (e.g., prombench, k6 with Prometheus remote write, custom Prometheus exporters generating synthetic data) is selected and configured.
+Scripts can generate metrics at specified samples/sec and active series counts.
+Scripts can simulate different metric names and label sets, including high cardinality scenarios.
+The generated metrics can be scraped by Alloy agents or sent via remote_write directly to Mimir's distributor.
+Issue: PERFTEST-LOADGEN-TRACES
+
+As a DevOps engineer, I want to develop or configure scripts and tools to generate a configurable volume of synthetic distributed traces (OTLP).
+So that Tempo's ingestion and query performance (trace lookup by ID) can be tested under realistic and stress load conditions.
+Acceptance Criteria:
+A trace generation tool (e.g., k6 with OTLP output, OpenTelemetry SDK examples generating synthetic traces) is selected and configured.
+Scripts can generate traces with a specified number of spans/sec.
+Scripts can simulate different trace structures (number of spans per trace, span attributes).
+The generated traces can be sent via OTLP to Alloy agents or directly to Tempo's distributor.
+Issue: PERFTEST-EXECUTE-LOKI
+
+As a DevOps engineer, I want to execute the defined performance test scenarios specifically targeting the Loki cluster and analyze the results.
+So that Loki's performance characteristics, bottlenecks, and scaling behavior under various log loads are understood.
+Acceptance Criteria:
+Log ingestion load tests (average, peak, soak) are executed against Loki.
+Log query performance tests (common query patterns, complex queries) are executed while under ingestion load.
+Key metrics (ingestion latency, query latency, error rates, resource utilization of Loki components) are collected and analyzed.
+HPA behavior for Loki components is observed and documented.
+Test results are compared against success criteria defined in the test plan.
+Issue: PERFTEST-EXECUTE-MIMIR
+
+As a DevOps engineer, I want to execute the defined performance test scenarios specifically targeting the Mimir cluster and analyze the results.
+So that Mimir's performance characteristics, bottlenecks (especially around cardinality), and scaling behavior under various metric loads are understood.
+Acceptance Criteria:
+Metric ingestion (remote_write) load tests (average, peak, soak, high cardinality) are executed against Mimir.
+Metric query performance tests (common PromQL queries, range queries, high cardinality queries) are executed while under ingestion load.
+Key metrics (ingestion latency, active series handling, query latency, error rates, resource utilization of Mimir components) are collected and analyzed.
+HPA behavior for Mimir components is observed and documented.
+Test results are compared against success criteria.
+Issue: PERFTEST-EXECUTE-TEMPO
+
+As a DevOps engineer, I want to execute the defined performance test scenarios specifically targeting the Tempo cluster and analyze the results.
+So that Tempo's performance characteristics, bottlenecks, and scaling behavior under various trace loads are understood.
+Acceptance Criteria:
+Trace ingestion (OTLP) load tests (average, peak, soak) are executed against Tempo.
+Trace query performance tests (lookup by TraceID) are executed while under ingestion load.
+Key metrics (ingestion latency, query latency, error rates, resource utilization of Tempo components) are collected and analyzed.
+HPA behavior for Tempo components is observed and documented.
+Test results are compared against success criteria.
+Issue: PERFTEST-EXECUTE-ALLOY
+
+As a DevOps engineer, I want to execute performance tests focusing on the Grafana Alloy agents deployed on simulated application nodes (or within the test environment).
+So that the resource footprint, processing overhead, and forwarding capacity of Alloy agents under various collection loads are understood.
+Acceptance Criteria:
+Alloy agents are subjected to high volumes of logs, metrics, and traces from load generators.
+CPU and memory utilization of Alloy agent pods are monitored.
+Any processing latency or data buffering within Alloy is observed.
+Exporter success/failure rates from Alloy to LGTM backends are monitored.
+The impact of different Alloy configurations (e.g., complex processing pipelines vs. simple forwarding) on its performance is assessed if applicable.
+Issue: PERFTEST-CAPACITY-ADJUST
+
+As a DevOps engineer, I want to analyze the results from all performance tests and make necessary adjustments to LGTM component sizing, configurations, and AKS cluster capacity.
+So that the LGTM stack is appropriately provisioned to meet the performance and scalability requirements of all Tier 1 applications based on empirical data.
+Acceptance Criteria:
+Performance test results are thoroughly analyzed to identify any bottlenecks or areas where components are over/under-provisioned.
+Adjustments are made to:
+Resource requests/limits for LGTM component pods.
+Replica counts for LGTM components.
+HPA configurations (target metrics, min/max replicas).
+AKS node pool sizes or VM SKUs.
+Configurations within Loki, Mimir, Tempo (e.g., queue sizes, concurrency limits, cache settings).
+If significant changes are made, a subset of performance tests may be re-run to validate improvements.
+Finalized capacity recommendations are documented.
+Issue: PERFTEST-REPORT
+
+As a DevOps engineer, I want to document the performance test execution process, findings, analysis, and any resulting capacity adjustments in a comprehensive report.
+So that there is a clear record of the LGTM stack's performance capabilities, limitations, and the basis for its current sizing and configuration.
+Acceptance Criteria:
+A performance test report is created.
+The report includes:
+Overview of the test plan and environment.
+Detailed results for each test scenario (Loki, Mimir, Tempo, Alloy).
+Analysis of performance against KPIs and success criteria.
+Identification of any bottlenecks encountered and how they were addressed.
+Summary of all configuration changes and capacity adjustments made as a result of testing.
+Observed limits of the current stack configuration.
+Recommendations for future scalability or performance tuning.
+The report is shared with and reviewed by stakeholders.
+This detailed breakdown should provide clear, actionable items for your project. Remember to adjust priorities and specifics based on your team's context and evolving requirements.
+
+
