@@ -1,0 +1,57 @@
+# Getting Top Pods on a Specific Node in AKS
+
+To view the resource usage (CPU and memory) of pods running on a specific node in AKS, you can use the `kubectl top` command combined with filtering. Here's how:
+
+## Method 1: Using kubectl top with grep
+
+First, use the `kubectl top` command to get resource usage for all pods, then filter for your specific node:
+
+```bash
+kubectl top pods --all-namespaces | grep $(kubectl get pods --all-namespaces -o wide --field-selector spec.nodeName=<node-name> -o custom-columns=NAMESPACE:.metadata.namespace,NAME:.metadata.name --no-headers | awk '{print $1"/"$2}' | paste -sd "|" -)
+```
+
+Replace `<node-name>` with your node's name.
+
+## Method 2: Using a shell script approach
+
+This is a bit cleaner and easier to understand:
+
+```bash
+# List pods on the specific node
+NODE_NAME="<node-name>"
+PODS=$(kubectl get pods --all-namespaces -o wide --field-selector spec.nodeName=$NODE_NAME --no-headers | awk '{print $1 " " $2}')
+
+# For each pod, get its resource usage
+echo "NAMESPACE NAME CPU(cores) MEMORY(bytes)"
+while read -r namespace pod; do
+  kubectl top pod -n $namespace $pod
+done <<< "$PODS"
+```
+
+## Method 3: Get top pods and sort them
+
+To sort the pods on that node by CPU or memory usage:
+
+```bash
+# Sort by CPU usage (highest first)
+kubectl top pods --all-namespaces | grep $(kubectl get pods --all-namespaces -o wide --field-selector spec.nodeName=<node-name> -o custom-columns=NAMESPACE:.metadata.namespace,NAME:.metadata.name --no-headers | awk '{print $1"/"$2}' | paste -sd "|" -) | sort -k3 -nr
+
+# Sort by memory usage (highest first)
+kubectl top pods --all-namespaces | grep $(kubectl get pods --all-namespaces -o wide --field-selector spec.nodeName=<node-name> -o custom-columns=NAMESPACE:.metadata.namespace,NAME:.metadata.name --no-headers | awk '{print $1"/"$2}' | paste -sd "|" -) | sort -k4 -nr
+```
+
+## Alternative: Using kubectl-node-shell plugin
+
+If you can install plugins, the `kubectl-node-shell` plugin allows you to execute commands directly on the node:
+
+```bash
+# Install the plugin
+kubectl krew install node-shell
+
+# Get a shell on the node
+kubectl node-shell <node-name>
+
+# Then use Linux commands like 'top' or 'ps' to view resource usage
+```
+
+Would you like me to explain any of these approaches in more detail?
