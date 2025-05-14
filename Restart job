@@ -1,0 +1,50 @@
+Okay, here's a draft Jira story for automating the clean stop and start of the Grafana LGTM stack on AKS:
+Story Title: Automate Clean Stop/Start of Grafana LGTM Stack on AKS for Weekend Shutdowns
+User Story:
+ * As a DevOps Engineer,
+ * I want to implement automated scripts and procedures to gracefully stop all Grafana LGTM (Loki, Grafana, Tempo, Mimir) stack components before the AKS cluster is stopped on Friday nights, and cleanly start them in the correct order after the AKS cluster is started on Monday mornings,
+ * So that we ensure data integrity, prevent data loss, reduce application startup issues, and maintain a stable monitoring environment while optimizing costs by shutting down the cluster during non-business hours.
+Acceptance Criteria:
+ * Graceful Shutdown Automation (Friday Night Script):
+   * A script (e.g., Bash, Python) is created to orchestrate the shutdown of all LGTM stack components (Mimir, Loki, Tempo, Grafana) in the specified namespace.
+   * The script scales down components in a predefined order:
+     * Mimir Ingesters (after triggering /ingester/shutdown API if applicable).
+     * Other Mimir components (Distributors, Queriers, Compactors, Store-Gateways, etc.).
+     * Loki components (Ingesters/Write-path, then Distributors/Read-path).
+     * Tempo components (Ingesters/Distributors, then Queriers).
+     * Grafana (last).
+   * The script utilizes kubectl scale statefulset/<name> --replicas=0 and kubectl scale deployment/<name> --replicas=0 for scaling down.
+   * For Mimir ingesters, the script attempts to call the /ingester/shutdown API endpoint on each ingester pod before scaling its StatefulSet to zero.
+   * The script waits for pods of each component to be fully terminated (e.g., using kubectl wait --for=delete pod -l ...) before proceeding to the next component.
+   * terminationGracePeriodSeconds for relevant LGTM component pods are reviewed and adjusted if necessary to allow sufficient time for graceful shutdown.
+   * The script includes clear logging of actions, successes, and failures.
+   * The script has configurable parameters for namespace and potentially replica counts (or retrieves them dynamically if feasible).
+   * Documentation clearly states that the AKS cluster stop command (az aks stop ...) should be run after the successful completion of this shutdown script.
+ * Clean Startup Automation (Monday Morning Script):
+   * A script is created to orchestrate the startup of all LGTM stack components.
+   * Documentation clearly states that the AKS cluster start command (az aks start ...) should be run and the cluster nodes verified as Ready before running this startup script.
+   * The script scales up components in a predefined order (reverse of shutdown, respecting dependencies):
+     * Mimir components (e.g., Store-Gateways, Compactors first, then Distributors/Queriers, then Ingesters).
+     * Loki components (e.g., Ingesters/Write-path, then Distributors/Read-path).
+     * Tempo components (e.g., Ingesters/Distributors, then Queriers).
+     * Grafana (last).
+   * The script scales components back to their original/defined replica counts.
+   * The script waits for pods of each component to be in a Ready state (passing readiness probes, e.g., using kubectl wait --for=condition=Ready pod -l ...) before proceeding to the next component.
+   * The script includes clear logging of actions, successes, and failures.
+   * The script has configurable parameters for namespace and replica counts (or uses a defined configuration source).
+ * Configuration and Data Integrity:
+   * Persistent Volume Claims (PVCs) for all stateful components (Mimir, Loki, Tempo) must remain intact and reattach successfully upon pod restart.
+   * No data loss within the acceptable flushing period of the components is observed after a full stop/start cycle in a test environment.
+   * Grafana dashboards, Mimir metrics, Loki logs, and Tempo traces are accessible and functioning correctly after the startup sequence.
+ * Documentation and Testing:
+   * Both scripts are well-commented and version-controlled (e.g., in Git).
+   * Clear operational documentation is provided, outlining:
+     * Pre-requisites for running the scripts.
+     * Step-by-step instructions for Friday shutdown (including running the script and then az aks stop).
+     * Step-by-step instructions for Monday startup (including az aks start and then running the script).
+     * Troubleshooting common issues.
+   * The entire stop-and-start procedure (including AKS cluster stop/start) is successfully tested end-to-end in a non-production environment at least twice without issues or data loss.
+ * Error Handling:
+   * Scripts include basic error detection (e.g., kubectl command failures) and exit appropriately.
+   * Timeouts are implemented for wait conditions to prevent indefinite hanging.
+This story should provide a good framework for your development team to understand the requirements and deliverables. Remember to adjust component names, specific API endpoints, and orders based on your exact LGTM stack deployment and versions.
