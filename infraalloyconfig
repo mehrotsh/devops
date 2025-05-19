@@ -1,0 +1,290 @@
+
+For infrastructure monitoring with Grafana Alloy Agent, you'd typically focus on metrics and logs rather than tracing. Tracing is generally more application-centric, focusing on request flows through your applications. Let me provide a sample Alloy Agent configuration for infrastructure monitoring.
+
+### Infrastructure Logs to Include
+
+Infrastructure logs that should be monitored include:
+1. **Node-level logs**
+   - Kernel logs (dmesg)
+   - systemd journal logs
+   - syslog
+
+2. **Kubernetes components logs**
+   - kubelet logs
+   - kube-proxy logs
+   - Container runtime logs (containerd/docker)
+
+3. **Control plane logs** (if accessible in AKS)
+   - API server
+   - Scheduler
+   - Controller manager
+   - etcd
+
+4. **CNI and network logs**
+   - CNI logs
+   - CoreDNS/kube-dns logs
+
+5. **System audit logs**
+   - Audit logs for security monitoring
+   - Cloud provider audit logs (Azure activity logs)
+
+Here's a sample `infra.alloy` configuration file:
+
+```river
+// infra.alloy - Infrastructure Monitoring Configuration
+// Cluster: A, Sending to LGTM Stack on Cluster B
+
+/////////////////////////////////////////////
+// GLOBAL CONFIGURATION
+/////////////////////////////////////////////
+logging {
+  level  = "info"
+  format = "logfmt"
+}
+
+// Kubernetes cluster details for metadata enrichment
+kubernetes_sd {
+  role = "node"
+}
+
+/////////////////////////////////////////////
+// METRICS COLLECTION
+/////////////////////////////////////////////
+prometheus.scrape "node_exporter" {
+  targets = kubernetes.service_endpoints {
+    namespace = "monitoring"
+    name      = "node-exporter"
+  }
+  forward_to = [prometheus.remote_write.lgtm.receiver]
+  scrape_interval = "30s"
+  
+  // Add cluster identifier
+  relabel_configs = [
+    {
+      source_labels = ["__meta_kubernetes_node_name"]
+      target_label  = "node"
+    },
+    {
+      target_label = "cluster"
+      replacement  = "cluster-a"
+    },
+    {
+      target_label = "component"
+      replacement  = "infrastructure"
+    }
+  ]
+}
+
+prometheus.scrape "kube_state_metrics" {
+  targets = kubernetes.service_endpoints {
+    namespace = "monitoring"
+    name      = "kube-state-metrics"
+  }
+  forward_to = [prometheus.remote_write.lgtm.receiver]
+  scrape_interval = "30s"
+  
+  relabel_configs = [
+    {
+      target_label = "cluster"
+      replacement  = "cluster-a"
+    },
+    {
+      target_label = "component"
+      replacement  = "infrastructure"
+    }
+  ]
+}
+
+prometheus.scrape "kubelet" {
+  targets = kubernetes.node_endpoints {
+    port = 10250
+    scheme = "https"
+    path = "/metrics"
+  }
+  bearer_token_file = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+  tls_config {
+    ca_file = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+    insecure_skip_verify = false
+  }
+  forward_to = [prometheus.remote_write.lgtm.receiver]
+  scrape_interval = "30s"
+  
+  relabel_configs = [
+    {
+      target_label = "cluster"
+      replacement  = "cluster-a"
+    },
+    {
+      target_label = "component"
+      replacement  = "infrastructure"
+    }
+  ]
+}
+
+prometheus.scrape "cadvisor" {
+  targets = kubernetes.node_endpoints {
+    port = 10250
+    scheme = "https"
+    path = "/metrics/cadvisor"
+  }
+  bearer_token_file = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+  tls_config {
+    ca_file = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+    insecure_skip_verify = false
+  }
+  forward_to = [prometheus.remote_write.lgtm.receiver]
+  scrape_interval = "30s"
+  
+  relabel_configs = [
+    {
+      target_label = "cluster"
+      replacement  = "cluster-a"
+    },
+    {
+      target_label = "component"
+      replacement  = "infrastructure"
+    }
+  ]
+}
+
+// Collect Azure AKS metrics
+prometheus.scrape "aks_metrics" {
+  targets = [
+    { "__address__" = "aks-metrics:9090" }
+  ]
+  forward_to = [prometheus.remote_write.lgtm.receiver]
+  scrape_interval = "60s"
+  
+  relabel_configs = [
+    {
+      target_label = "cluster"
+      replacement  = "cluster-a"
+    },
+    {
+      target_label = "component" 
+      replacement  = "azure-aks"
+    }
+  ]
+}
+
+/////////////////////////////////////////////
+// LOGS COLLECTION
+/////////////////////////////////////////////
+loki.source.kubernetes "infrastructure_logs" {
+  targets = kubernetes.service_endpoints {
+    namespace = "monitoring"
+    name = "infrastructure-logs"
+  }
+  forward_to = [loki.write.lgtm.receiver]
+  
+  // Extract pod and container information
+  relabel_configs = [
+    {
+      source_labels = ["__meta_kubernetes_pod_node_name"]
+      target_label  = "node"
+    },
+    {
+      target_label = "cluster"
+      replacement  = "cluster-a"
+    }
+  ]
+}
+
+// Collect systemd journal logs
+loki.source.journal "systemd_logs" {
+  forward_to = [loki.process.infrastructure.receiver]
+  labels = {
+    job = "systemd-journal",
+    cluster = "cluster-a",
+    component = "infrastructure"
+  }
+}
+
+// Process infrastructure logs
+loki.process "infrastructure" {
+  forward_to = [loki.write.lgtm.receiver]
+  
+  stage.json {
+    expressions = {
+      level = "level",
+      message = "message",
+      timestamp = "time"
+    }
+  }
+  
+  stage.labels {
+    values = {
+      level = "",
+    }
+  }
+}
+
+// Collect Kubernetes control plane logs
+loki.source.file "k8s_control_plane" {
+  targets = [
+    {
+      __path__ = "/var/log/kube-system/*.log"
+    }
+  ]
+  forward_to = [loki.process.infrastructure.receiver]
+}
+
+/////////////////////////////////////////////
+// REMOTE WRITE CONFIGURATION
+/////////////////////////////////////////////
+prometheus.remote_write "lgtm" {
+  endpoint {
+    url = "https://prometheus.cluster-b.svc.cluster.local/api/v1/write"
+    
+    basic_auth {
+      username = env("PROM_USERNAME")
+      password = env("PROM_PASSWORD")
+    }
+    
+    tls_config {
+      insecure_skip_verify = false
+      ca_file = "/etc/ssl/certs/cluster-b-ca.crt"
+    }
+  }
+  
+  queue_config {
+    capacity = 10000
+    max_samples_per_send = 2000
+    batch_send_deadline = "30s"
+    min_backoff = "1s"
+    max_backoff = "10s"
+    retry_on_http_429 = true
+  }
+}
+
+loki.write "lgtm" {
+  endpoint {
+    url = "https://loki.cluster-b.svc.cluster.local/loki/api/v1/push"
+    
+    basic_auth {
+      username = env("LOKI_USERNAME")
+      password = env("LOKI_PASSWORD")
+    }
+    
+    tls_config {
+      insecure_skip_verify = false
+      ca_file = "/etc/ssl/certs/cluster-b-ca.crt"
+    }
+  }
+  
+  external_labels = {
+    cluster = "cluster-a",
+    environment = "production"
+  }
+}
+```
+
+This configuration:
+
+1. Collects infrastructure metrics from node-exporter, kube-state-metrics, kubelet, and cAdvisor
+2. Gathers infrastructure logs from Kubernetes components and system logs
+3. Adds consistent labels for cluster identification and component separation
+4. Forwards everything to your LGTM stack on cluster B
+5. Uses the River language format (not YAML) as required by Grafana Alloy Agent
+
+Note that tracing is absent as it's typically more relevant for application monitoring. If you determine that certain infrastructure components require tracing (perhaps for cloud provider API interactions), you would include that in a separate application-focused configuration.
