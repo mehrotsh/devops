@@ -1,0 +1,33 @@
+ script:
+    # Create directory for log files
+    - mkdir -p ${LOGS_DIR}
+    - TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+    
+    # Verify cluster connection
+    - echo "Connected to cluster:"
+    - kubectl cluster-info --request-timeout=10s
+    
+    # Get current namespace (or specify your target namespace)
+    - NAMESPACE=${KUBE_NAMESPACE:-default}
+    - echo "Collecting logs from namespace: $NAMESPACE"
+    
+    # Collect logs from running pods
+    - |
+      echo "=== Collecting Pod Logs ===" 
+      
+      # Get all pods in the namespace
+      kubectl logs deployment/$deployment -n $NAMESPACE --tail=1000 > ${LOGS_DIR}/deployment_${deployment}_${TIMESTAMP}.log 2>&1 
+    - echo "=== Creating Archive ==="
+    - tar -czf k8s-logs-${NAMESPACE}-${TIMESTAMP}.tar.gz ${LOGS_DIR}/
+    - echo "Archive created: k8s-logs-${NAMESPACE}-${TIMESTAMP}.tar.gz"
+
+  artifacts:
+    name: "k8s-logs-${CI_COMMIT_SHORT_SHA}-${CI_JOB_ID}"
+    paths:
+      - ${LOGS_DIR}/
+      - "k8s-logs-*.tar.gz"
+    expire_in: 1 week
+    when: always
+    reports:
+      # This makes the summary easily accessible
+      annotations: ${LOGS_DIR}/collection_summary_*.txt
