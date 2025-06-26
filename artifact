@@ -23,6 +23,31 @@
 
   artifacts:
     name: "k8s-logs-${CI_COMMIT_SHORT_SHA}-${CI_JOB_ID}"
+
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: sync-trigger
+  namespace: default
+spec:
+  serviceAccountName: default
+  containers:
+    - name: busybox
+      image: busybox
+      command: ["sleep", "3600"]
+      volumeMounts:
+        - name: secrets-store-inline
+          mountPath: "/mnt/secrets-store"
+          readOnly: true
+  volumes:
+    - name: secrets-store-inline
+      csi:
+        driver: secrets-store.csi.k8s.io
+        readOnly: true
+        volumeAttributes:
+          secretProviderClass: "my-azure-kv-secretclass"
+
     paths:
       - ${LOGS_DIR}/
       - "k8s-logs-*.tar.gz"
